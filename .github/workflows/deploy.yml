@@ -1,0 +1,47 @@
+name: Deploy to Kakao Cloud Container Registry
+
+on:
+  release:
+    types: [ published ]
+
+permissions:
+  contents: read
+
+jobs:
+  build-docker-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set Secret yml file.
+        run: |
+          touch ./src/main/resources/secret.yml
+          echo "${{ secrets.SECRETYML }}" > ./src/main/resources/secret.yml
+          cat ./src/main/resources/secret.yml
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+        shell: bash
+
+      - name: Build with Gradle
+        run: ./gradlew bootJar
+        shell: bash
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to KakaoCloud Container Registry
+        run: docker login ${{ secrets.KC_REGISTRY_URL }} --username ${{ secrets.KC_ACCESS_KEY_ID }} --password ${{ secrets.KC_SECRET_KEY }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          tags: ${{ secrets.KC_REGISTRY_URL }}/${{ secrets.IMAGE_NAME }}:${{ github.event.release.tag_name }}, ${{ secrets.KC_REGISTRY_URL }}/${{ secrets.IMAGE_NAME }}:latest
