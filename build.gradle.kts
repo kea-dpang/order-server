@@ -6,6 +6,8 @@ plugins {
     kotlin("jvm") version "1.9.22"
     kotlin("plugin.spring") version "1.9.22"
     kotlin("plugin.jpa") version "1.9.22"
+    kotlin("kapt") version "1.8.21"
+    id("idea")
 }
 
 group = "kea.dpang"
@@ -28,6 +30,8 @@ repositories {
 extra["springCloudVersion"] = "2023.0.0"
 
 dependencies {
+    apply(plugin = "kotlin-kapt")
+
     // Spring
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-security")
@@ -36,6 +40,10 @@ dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-openfeign")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.security:spring-security-test")
+
+    // QueryDSL
+    implementation("com.querydsl:querydsl-jpa:5.0.0:jakarta")
+    kapt("com.querydsl:querydsl-apt:5.0.0:jakarta")
 
     // Kotlin
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
