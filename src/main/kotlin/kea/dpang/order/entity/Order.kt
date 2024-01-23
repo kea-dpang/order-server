@@ -14,10 +14,10 @@ import java.time.LocalDateTime
  * @property status 주문 및 배송 상태
  * @property deliveryRequest 배송시 요청사항
  * @property paymentAmount 결제 금액
- * @property createdAt 주문 생성 시각.
+ * @property date 주문 시각.
  * @property updatedAt 주문 정보 업데이트 시각.
- * @property orderRecipient 주문의 수령자 정보
- * @property orderDetails 주문에 속한 주문 상세 리스트
+ * @property recipient 주문의 수령자 정보
+ * @property details 주문에 속한 주문 상세 리스트
  */
 @Entity
 class Order(
@@ -40,17 +40,17 @@ class Order(
     var paymentAmount: Int, // 결제 금액
 
     @CreationTimestamp
-    @Column(name = "created_at")
-    var createdAt: LocalDateTime, // 생성 날짜
+    @Column(name = "order_date")
+    var date: LocalDateTime, // 생성 날짜
 
     @UpdateTimestamp
     @Column(name = "updated_at")
     var updatedAt: LocalDateTime, // 변경 날짜
 
     @OneToOne(mappedBy = "order", cascade = [CascadeType.ALL])
-    var orderRecipient: OrderRecipient? = null,
+    var recipient: OrderRecipient? = null,
 
     @OneToMany(mappedBy = "order", cascade = [CascadeType.ALL])
-    var orderDetails: MutableList<OrderDetail> = mutableListOf()
+    var details: MutableList<OrderDetail> = mutableListOf()
 
 )
