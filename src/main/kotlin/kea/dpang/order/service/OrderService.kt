@@ -1,9 +1,9 @@
 package kea.dpang.order.service
 
+import kea.dpang.order.dto.order.OrderDetailDto
+import kea.dpang.order.dto.order.OrderDto
 import kea.dpang.order.dto.order.OrderRequestDto
 import kea.dpang.order.dto.order.UpdateOrderStatusRequestDto
-import kea.dpang.order.entity.Order
-import kea.dpang.order.entity.OrderDetail
 import kea.dpang.order.entity.OrderStatus
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -17,7 +17,7 @@ interface OrderService {
      * @param orderRequest 주문 요청 정보
      * @return 주문 결과
      */
-    fun placeOrder(orderRequest: OrderRequestDto): Order
+    fun placeOrder(orderRequest: OrderRequestDto): OrderDto
 
     /**
      * 주문 상태 수정 - 관리자
@@ -46,7 +46,7 @@ interface OrderService {
         orderStatus: OrderStatus?,
         orderId: String?,
         pageable: Pageable
-    ): Page<Order>
+    ): Page<OrderDto>
 
     /**
      * 주문 및 배송 상세 조회
@@ -54,6 +54,6 @@ interface OrderService {
      * @param orderId 조회할 주문의 식별자
      * @return 조회된 주문 및 배송 상세 정보
      */
-    fun getOrder(orderId: String): OrderDetail
+    fun getOrder(orderId: String): OrderDetailDto
 
 }

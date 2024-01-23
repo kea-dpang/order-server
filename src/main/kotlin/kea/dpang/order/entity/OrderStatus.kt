@@ -8,6 +8,11 @@ import com.fasterxml.jackson.annotation.JsonCreator
 enum class OrderStatus {
 
     /**
+     * 주문 접수 상태
+     */
+    ORDER_RECEIVED,
+
+    /**
      * 결제 완료 상태
      */
     PAYMENT_COMPLETED,
