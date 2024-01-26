@@ -19,6 +19,11 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
+      - name: Set Secret yml file.
+        run: |
+          touch ./src/main/resources/secret.yml
+          echo "${{ secrets.SECRETYML }}" > ./src/main/resources/secret.yml
+          cat ./src/main/resources/secret.yml
       - name: Grant execute permission for gradlew
         run: chmod +x ./gradlew
         shell: bash
@@ -40,7 +45,7 @@ jobs:
           push: true
           platforms: linux/amd64
           tags: ${{ secrets.KC_REGISTRY_URL }}/${{ secrets.IMAGE_NAME }}:${{ github.event.release.tag_name }}, ${{ secrets.KC_REGISTRY_URL }}/${{ secrets.IMAGE_NAME }}:latest
-  
+
   update-k8s:
     needs: build-docker-image
     runs-on: ubuntu-latest
@@ -54,13 +59,17 @@ jobs:
         id: repo-name
         run: echo "REPO_NAME=$(echo ${{ github.repository }} | cut -d'/' -f2)" >> $GITHUB_ENV
 
+      - name: Extract directory name
+        id: directory-name
+        run: echo "DIRECTORY_NAME=$(echo ${{ secrets.IMAGE_NAME }} | cut -d'/' -f2)" >> $GITHUB_ENV
+
       - name: Update image version
-        run: sed -i 's|${{ secrets.KC_REGISTRY_URL }}/${{ secrets.IMAGE_NAME }}.*|${{ secrets.KC_REGISTRY_URL }}/${{ secrets.IMAGE_NAME }}:${{ github.event.release.tag_name }}|' ./backend/${{ env.REPO_NAME }}-deployment.yaml
+        run: sed -i 's|${{ secrets.KC_REGISTRY_URL }}/${{ secrets.IMAGE_NAME }}.*|${{ secrets.KC_REGISTRY_URL }}/${{ secrets.IMAGE_NAME }}:${{ github.event.release.tag_name }}|' ./backend/${{ env.DIRECTORY_NAME }}/${{ env.REPO_NAME }}-deployment.yaml
 
       - name: Commit and push changes
         run: |
           git config --global user.name ${{ secrets.GIT_USER_NAME }}
           git config --global user.email ${{ secrets.GIT_USER_EMAIL }}
-          git add ./backend/${{ env.REPO_NAME }}-deployment.yaml
-          git commit -m "update: 이미지 버전 수정 v${{ github.event.release.tag_name }} by Git Action"
+          git add ./backend/${{ env.DIRECTORY_NAME }}/${{ env.REPO_NAME }}-deployment.yaml
+          git commit -m "update: 이미지 버전 수정 ${{ secrets.IMAGE_NAME }} v${{ github.event.release.tag_name }} by Git Action"
           git push
