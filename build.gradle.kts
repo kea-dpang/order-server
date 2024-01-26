@@ -55,6 +55,10 @@ dependencies {
 
     // MySQL
     runtimeOnly("com.mysql:mysql-connector-j")
+
+    // Swagger
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.1.0")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-api:2.1.0")
 }
 
 dependencyManagement {

@@ -21,15 +21,15 @@ interface RefundController {
      * @param refundOrderRequest 환불 요청 정보
      * @return 환불 결과
      */
-    fun refundOrder(orderDetailId: String, refundOrderRequest: RefundOrderRequestDto): ResponseEntity<BaseResponse>
+    fun refundOrder(orderDetailId: Long, refundOrderRequest: RefundOrderRequestDto): ResponseEntity<BaseResponse>
 
     /**
      * 환불 조회
      *
-     * @param orderId 주문 식별자
+     * @param refundId 주문 식별자
      * @return 조회된 환불 정보
      */
-    fun getRefund(orderId: String): ResponseEntity<SuccessResponse<RefundDetailDto>>
+    fun getRefund(refundId: Long): ResponseEntity<SuccessResponse<RefundDetailDto>>
 
     /**
      * 환불 조회 - List
@@ -45,7 +45,7 @@ interface RefundController {
         startDate: LocalDate?,
         endDate: LocalDate?,
         reason: Reason?,
-        refundId: String?,
+        refundId: Long?,
         pageable: Pageable
     ): ResponseEntity<SuccessResponse<Page<RefundDto>>>
 
@@ -56,5 +56,5 @@ interface RefundController {
      * @param refundStatusDto 환불 상태 정보
      * @return 업데이트 결과 메시지
      */
-    fun updateRefundStatus(orderDetailId: String, refundStatusDto: RefundStatusDto): ResponseEntity<BaseResponse>
+    fun updateRefundStatus(orderDetailId: Long, refundStatusDto: RefundStatusDto): ResponseEntity<BaseResponse>
 }

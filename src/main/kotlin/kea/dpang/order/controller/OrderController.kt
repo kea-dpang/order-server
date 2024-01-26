@@ -20,10 +20,11 @@ interface OrderController {
     /**
      * 상품 주문 - 사용자
      *
-     * @param deliveryRequest 배송 요청 정보
+     * @param userId 사용자 식별자
+     * @param orderRequest 배송 요청 정보
      * @return 주문 결과
      */
-    fun placeOrder(deliveryRequest: OrderRequestDto): ResponseEntity<SuccessResponse<OrderDto>>
+    fun placeOrder(userId: Long, orderRequest: OrderRequestDto): ResponseEntity<SuccessResponse<OrderDto>>
 
     /**
      * 주문 상태 수정 - 관리자
@@ -33,7 +34,7 @@ interface OrderController {
      * @return 변경 결과
      */
     fun updateOrderStatus(
-        orderId: String,
+        orderId: Long,
         updateOrderStatusRequest: UpdateOrderStatusRequestDto
     ): ResponseEntity<BaseResponse>
 
@@ -51,7 +52,7 @@ interface OrderController {
         startDate: LocalDate?,
         endDate: LocalDate?,
         orderStatus: OrderStatus?,
-        orderId: String?,
+        orderId: Long?,
         pageable: Pageable
     ): ResponseEntity<SuccessResponse<Page<OrderDto>>>
 
@@ -61,6 +62,6 @@ interface OrderController {
      * @param orderId 조회할 주문의 식별자
      * @return 조회된 주문 및 배송 상세 정보
      */
-    fun getOrder(orderId: String): ResponseEntity<SuccessResponse<OrderDetailDto>>
+    fun getOrder(orderId: Long): ResponseEntity<SuccessResponse<OrderDetailDto>>
 
 }

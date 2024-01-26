@@ -15,9 +15,10 @@ interface CancelController {
      * 주문 취소 요청 - 사용자
      *
      * @param orderDetailId 주문 상세 ID
+     * @param reason 취소 사유
      * @return 취소 결과
      */
-    fun cancelOrder(orderDetailId: String): ResponseEntity<BaseResponse>
+    fun cancelOrder(orderDetailId: Long, reason: Reason): ResponseEntity<BaseResponse>
 
     /**
      * 주문 취소 상세 조회
@@ -25,7 +26,7 @@ interface CancelController {
      * @param cancelId 조회할 취소의 식별자
      * @return 조회된 주문 취소 상세 정보
      */
-    fun getCancel(cancelId: String): ResponseEntity<SuccessResponse<CancelDto>>
+    fun getCancel(cancelId: Long): ResponseEntity<SuccessResponse<CancelDto>>
 
     /**
      * 주문 취소 조회 - List
@@ -41,7 +42,7 @@ interface CancelController {
         startDate: LocalDate?,
         endDate: LocalDate?,
         reason: Reason?,
-        cancelId: String?,
+        cancelId: Long?,
         pageable: Pageable
     ): ResponseEntity<SuccessResponse<Page<CancelDto>>>
 
