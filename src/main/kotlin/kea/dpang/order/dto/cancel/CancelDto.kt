@@ -11,7 +11,7 @@ import java.time.LocalDate
  * @property orderId 주문 식별자
  * @property orderDate 주문 일자
  * @property product 상품 정보
- * @property expectedCancelAmount 환불 예정액
+ * @property expectedRefundAmount 환불 예정액
  */
 data class CancelDto(
     val cancelId: Long,
@@ -19,6 +19,5 @@ data class CancelDto(
     val orderId: Long,
     val orderDate: LocalDate,
     val product: OrderedProductInfo,
-    val expectedCancelAmount: Int
+    val expectedRefundAmount: Int
 )
-// Todo: 사용자 식별자

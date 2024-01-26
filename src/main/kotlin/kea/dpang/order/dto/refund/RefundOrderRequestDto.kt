@@ -7,8 +7,10 @@ import kea.dpang.order.entity.Reason
  *
  * @property refundReason 환불 사유
  * @property remark 비고
+ * @property retrievalMessage 회수 메시지
  */
 data class RefundOrderRequestDto(
-    val refundReason: Reason,
-    val remark: String?
+    val refundReason: Reason, // 환불 사유
+    val remark: String?, // 비고
+    val retrievalMessage: String? // 회수 메시지
 )

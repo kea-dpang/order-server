@@ -18,15 +18,15 @@ interface RefundService {
      * @param refundOrderRequest 환불 요청 정보
      * @return 환불 결과
      */
-    fun refundOrder(orderDetailId: String, refundOrderRequest: RefundOrderRequestDto)
+    fun refundOrder(orderDetailId: Long, refundOrderRequest: RefundOrderRequestDto)
 
     /**
      * 환불 조회
      *
-     * @param orderId 주문 식별자
+     * @param refundId 환불 식별자
      * @return 조회된 환불 정보
      */
-    fun getRefund(orderId: String): RefundDetailDto
+    fun getRefund(refundId: Long): RefundDetailDto
 
     /**
      * 환불 조회 - List
@@ -42,7 +42,7 @@ interface RefundService {
         startDate: LocalDate?,
         endDate: LocalDate?,
         reason: Reason?,
-        refundId: String?,
+        refundId: Long?,
         pageable: Pageable
     ): Page<RefundDto>
 
@@ -52,6 +52,6 @@ interface RefundService {
      * @param orderDetailId 주문 상세 ID
      * @param refundStatusDto 환불 상태 정보
      */
-    fun updateRefundStatus(orderDetailId: String, refundStatusDto: RefundStatusDto)
+    fun updateRefundStatus(orderDetailId: Long, refundStatusDto: RefundStatusDto)
 
 }

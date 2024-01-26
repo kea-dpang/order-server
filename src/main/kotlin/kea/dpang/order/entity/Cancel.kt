@@ -1,6 +1,7 @@
 package kea.dpang.order.entity
 
 import jakarta.persistence.*
+import org.hibernate.annotations.CreationTimestamp
 import java.time.LocalDateTime
 
 /**
@@ -12,14 +13,13 @@ import java.time.LocalDateTime
  * @property requestDate 취소 요청 날짜
  * @property completeDate 취소 완료 날짜
  */
-
-@Entity
-class Cancel(
+@Entity(name = "order_cancels")
+data class Cancel(
 
     @Id
     @Column(name = "cancel_id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    var id: Long, // 취소 ID
+    var id: Long? = null, // 취소 ID
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_detail_id")
@@ -29,9 +29,10 @@ class Cancel(
     @Column(name = "cancel_reason")
     var reason: Reason, // 취소 사유
 
+    @CreationTimestamp
     @Column(name = "cancel_request_date")
-    var requestDate: LocalDateTime, // 취소 요청 날짜
+    var requestDate: LocalDateTime? = null, // 취소 요청 날짜
 
     @Column(name = "cancel_complete_date")
-    var completeDate: LocalDateTime // 취소 완료 날짜
+    var completeDate: LocalDateTime? = null // 취소 완료 날짜
 )

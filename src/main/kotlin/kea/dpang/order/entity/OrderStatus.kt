@@ -35,7 +35,12 @@ enum class OrderStatus {
     /**
      * 배송 완료 상태
      */
-    DELIVERY_COMPLETED;
+    DELIVERY_COMPLETED,
+
+    /**
+     * 주문 취소 상태
+     */
+    CANCELLED;
 
     companion object {
         @JsonCreator

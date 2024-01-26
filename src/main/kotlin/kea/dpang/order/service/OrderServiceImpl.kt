@@ -1,64 +1,225 @@
 package kea.dpang.order.service
 
-import kea.dpang.order.dto.order.OrderDetailDto
-import kea.dpang.order.dto.order.OrderDto
-import kea.dpang.order.dto.order.OrderRequestDto
-import kea.dpang.order.dto.order.UpdateOrderStatusRequestDto
-import kea.dpang.order.entity.OrderStatus
+import kea.dpang.order.dto.OrderedProductInfo
+import kea.dpang.order.dto.ProductInfoDto
+import kea.dpang.order.dto.order.*
+import kea.dpang.order.entity.*
+import kea.dpang.order.entity.OrderStatus.*
+import kea.dpang.order.exception.*
+import kea.dpang.order.feign.ItemServiceFeignClient
+import kea.dpang.order.feign.MileageServiceFeignClient
+import kea.dpang.order.feign.dto.ConsumeMileageRequestDto
+import kea.dpang.order.repository.OrderDetailRepository
 import kea.dpang.order.repository.OrderRepository
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
 
 @Service
-class OrderServiceImpl(private val orderRepository: OrderRepository) : OrderService {
+@Transactional
+class OrderServiceImpl(
+    private val orderRepository: OrderRepository,
+    private val orderDetailRepository: OrderDetailRepository,
+    private val itemServiceFeignClient: ItemServiceFeignClient,
+    private val mileageServiceFeignClient: MileageServiceFeignClient
+) : OrderService {
 
-    override fun placeOrder(orderRequest: OrderRequestDto): OrderDto {
-        TODO("Not yet implemented")
-        /*
-            1. OrderRequestDto에서 주문 정보를 추출한다.
-            2. 주문 상품의 재고가 충분한지 확인한다. 주문 상품의 재고가 충분하지 않다면 주문을 처리하지 않고 예외를 발생시킨다.
-            3. 사용자의 마일리지가 주문에 사용할 마일리지보다 많은지 확인한다. 만약 사용자의 마일리지가 부족하다면 주문을 처리하지 않고 예외를 발생시킨다.
-            4. 주문 정보를 데이터베이스에 저장한다. 이때, 주문 상태는 '주문 접수'로 설정한다.
-            5. 주문이 성공적으로 처리되면, 주문 상품의 재고를 감소시키고, 사용자의 마일리지를 감소시킨다.
-            6. 주문 상태를 '결제 완료'로 변경한다.
-            7. 마지막으로, 저장된 주문 정보를 반환한다.
-         */
+    override fun placeOrder(userId: Long, orderRequest: OrderRequestDto): OrderDto {
+        // OrderRequestDto에서 주문 정보를 추출한다.
+        val productInfoList = orderRequest.orderIteminfo
+
+        // 주문 상품의 재고가 충분한지 확인하고, 총 비용을 계산한다.
+        var totalCost = 0
+        for (productInfo in productInfoList) {
+            val productId = productInfo.itemId
+            val quantity = productInfo.quantity
+
+            // 상품 정보를 받아온다.
+            val product = itemServiceFeignClient.getItemInfo(productId).data
+            if (product.quantity < quantity) {
+                throw InsufficientStockException(productId)
+            }
+
+            totalCost += product.price * quantity
+        }
+
+        // 사용자의 마일리지가 총 비용보다 많은지 확인한다.
+        val response = mileageServiceFeignClient.getUserMileage(userId, userId)
+        if (response.data.mileage < totalCost) {
+            throw InsufficientMileageException(userId)
+        }
+
+        // 주문 정보를 생성한다.
+        val order = createOrder(userId, orderRequest, totalCost)
+
+        // 주문 정보를 데이터베이스에 저장한다.
+        orderRepository.save(order)
+
+        // 주문이 성공적으로 처리되면, 주문 상품의 재고를 감소시키고,
+        for (productInfo in productInfoList) {
+            val productId = productInfo.itemId
+            val quantity = productInfo.quantity
+
+            itemServiceFeignClient.decreaseItemStock(productId, quantity)
+        }
+
+        // 사용자의 마일리지를 감소시킨다.
+        val consumeMileageRequest = ConsumeMileageRequestDto(
+            userId = userId,
+            amount = totalCost,
+            reason = "주문 결제"
+        )
+        mileageServiceFeignClient.consumeMileage(userId, consumeMileageRequest)
+
+        // 주문 상태를 '결제 완료'로 변경한다.
+        order.details.forEach { orderDetail ->
+            orderDetail.status = PAYMENT_COMPLETED
+        }
+
+        // 저장된 주문 정보를 반환한다.
+        return convertOrderEntityToDto(order)
     }
 
-    override fun updateOrderStatus(orderId: String, updateOrderStatusRequest: UpdateOrderStatusRequestDto) {
-        TODO("Not yet implemented")
-        /*
-            1. orderId를 사용하여 데이터베이스에서 주문 정보를 조회한다. 이때, 주문 정보가 없으면 예외를 발생킨다.
-            2. UpdateOrderStatusRequestDto에서 변경할 주문 상태를 추출한다.
-            3. 변경할 주문 상태가 현재 주문 상태와 동일한지 확인한다. 만약 동일하다면 상태 변경을 진행하지 않고 메소드를 종료한다.
-            4. 주문 상태 변경이 유효한지 검증한다. 예를 들어, 주문 상태를 '배송 완료'로 변경하려면 현재 주문 상태가 '배송중'이어야 한다. 이와 같이 주문 상태 변경은 특정 상태에서만 가능해야 한다.
-            5. 주문 상태 변경이 유효하다면 주문 정보의 상태를 변경한다.
-            6. 변경된 주문 정보를 데이터베이스에 업데이트한다.
-         */
+    /**
+     * 주문을 생성하는 메소드
+     *
+     * @param userId 주문을 생성하는 사용자의 ID.
+     * @param orderRequestDto 주문 생성 요청 정보를 담고 있는 DTO.
+     * @param totalCost 상품의 총 가격.
+     * @return 생성된 Order 엔티티.
+     */
+    private fun createOrder(userId: Long, orderRequestDto: OrderRequestDto, totalCost: Int): Order {
+        // 주문 객체를 생성한다. 초기에 수령인 정보(recipient)는 설정하지 않는다.
+        val order = Order(
+            userId = userId,
+            deliveryRequest = orderRequestDto.deliveryRequest,
+            productPaymentAmount = totalCost,
+            recipient = null,  // 초기에는 null로 설정합니다.
+            details = mutableListOf()
+        )
+
+        // 수령인 정보를 생성하고 주문 객체에 설정한다.
+        val orderRecipient = OrderRecipient(
+            order = order,
+            name = orderRequestDto.deliveryInfo.name,
+            phoneNumber = orderRequestDto.deliveryInfo.phoneNumber,
+            zipCode = orderRequestDto.deliveryInfo.zipCode,
+            address = orderRequestDto.deliveryInfo.address,
+            detailAddress = orderRequestDto.deliveryInfo.detailAddress
+        )
+        order.updateRecipient(orderRecipient)
+
+        // 주문 상세 정보를 생성하고 주문 객체에 설정한다.
+        order.details = orderRequestDto.orderIteminfo.map { orderIteminfo ->
+
+            // 상품 서비스로부터 상품 정보를 조회한다.
+            val itemInfo = itemServiceFeignClient.getItemInfo(orderIteminfo.itemId).data
+
+            // 주문 상세 정보를 생성한다.
+            OrderDetail(
+                order = order, // order 객체에 대한 참조를 설정한다.
+                status = ORDER_RECEIVED,
+                itemId = orderIteminfo.itemId,
+                quantity = orderIteminfo.quantity,
+                purchasePrice = itemInfo.price
+            )
+
+        }.toMutableList()
+
+        // 생성된 주문 객체를 반환한다.
+        return order
     }
 
+    override fun updateOrderStatus(orderDetailId: Long, updateOrderStatusRequest: UpdateOrderStatusRequestDto) {
+        // 데이터베이스에서 주문 정보를 조회한다.
+        val order = orderDetailRepository.findById(orderDetailId)
+            .orElseThrow { OrderNotFoundException(orderDetailId) }
+
+        // 변경할 주문 상태를 추출한다.
+        val targetStatus = updateOrderStatusRequest.status
+
+        // 변경할 주문 상태가 현재 주문 상태와 동일한지 확인한다.
+        if (order.status == targetStatus) {
+            throw OrderAlreadyInRequestedStatusException()
+        }
+
+        // 주문 상태 변경이 유효한지 검증한다.
+        validateStatusChange(order.status, targetStatus)
+
+        // 주문 정보의 상태를 변경한다.
+        order.status = targetStatus
+    }
+
+    /**
+     * 주문 상태 변경이 유효한지 검증하는 메서드.
+     * 주문 상태는 순차적으로 변경되어야 하며, 이를 위반할 경우 예외를 발생시킨다.
+     * 예를 들어, '주문 접수' 상태에서 바로 '배송중' 상태로 변경하는 것은 허용되지 않는다.
+     *
+     * @param currentStatus 현재 주문 상태
+     * @param targetStatus 변경하려는 주문 상태
+     * @throws InvalidOrderStatusChangeException 주문 상태 변경이 유효하지 않은 경우
+     */
+    private fun validateStatusChange(currentStatus: OrderStatus, targetStatus: OrderStatus) {
+        if (currentStatus.ordinal + 1 != targetStatus.ordinal) {
+            throw InvalidOrderStatusChangeException(currentStatus.name, targetStatus.name)
+        }
+    }
+
+    @Transactional(readOnly = true)
     override fun getOrderList(
         startDate: LocalDate?,
         endDate: LocalDate?,
-        orderStatus: OrderStatus?,
-        orderId: String?,
+        orderId: Long?,
         pageable: Pageable
     ): Page<OrderDto> {
-        TODO("Not yet implemented")
-        /*
-            1. startDate, endDate, orderStatus, orderId와 같은 필터링 조건을 사용하여 데이터베이스에서 주문 정보 목록을 조회한다. 이때, pageable 객체를 사용하여 페이징 처리를 적용한다.
-            2. 조회된 주문 정보 목록을 OrderDto로 변환한다. 각 환불 정보를 OrderDto로 변환하는 로직을 목록의 각 요소에 적용한다.
-            3. 변환된 OrderDto 목록을 Page 객체로 래핑하여 반환한다. 이때, 원본 Page 객체의 메타데이터(예: 총 페이지 수, 현재 페이지 번호 등)를 유지해야 한다.
-         */
+
+        return orderRepository
+            .findOrders(startDate, endDate, orderId, pageable)
+            .map { convertOrderEntityToDto(it) }
     }
 
-    override fun getOrder(orderId: String): OrderDetailDto {
-        TODO("Not yet implemented")
-        /*
-            1. orderId를 사용하여 데이터베이스에서 주문 상세 정보를 조회한다. 이때, 주문 상세 정보가 없으면 예외를 발생시킨다.
-            2. 조회된 주문 상세 정보를 변환 및 반환한다.
-         */
+    /**
+     * Order 엔티티를 OrderDto로 변환하는 메서드
+     *
+     * @param order 변환할 Order 엔티티 객체
+     * @return 변환된 OrderDto 객체
+     */
+    private fun convertOrderEntityToDto(order: Order): OrderDto {
+        // 상품 서비스로부터 상품 정보 조회 및 DTO 설정
+        val productList = order.details.map { orderDetail ->
+            val productInfo = itemServiceFeignClient.getItemInfo(orderDetail.itemId).data // 상품 정보 가져오기
+
+            OrderedProductInfo(
+                orderDetailId = orderDetail.id!!,
+                orderStatus = orderDetail.status,
+                productInfoDto = ProductInfoDto.from(productInfo),
+                productQuantity = orderDetail.quantity
+            )
+        }
+
+        // OrderDto로 변환 및 반환
+        return OrderDto(
+            orderId = order.id!!,
+            orderDate = order.date!!.toLocalDate(),
+            productList = productList,
+            orderer = order.userId.toString()
+        )
     }
+
+    @Transactional(readOnly = true)
+    override fun getOrder(orderId: Long): OrderDetailDto {
+        // 데이터베이스에서 주문 정보를 조회
+        val order = orderRepository.findById(orderId)
+            .orElseThrow { OrderNotFoundException(orderId) }
+
+        // OrderDetailDto 반환
+        return OrderDetailDto(
+            order = convertOrderEntityToDto(order),
+            deliveryInfo = DeliveryInfo.from(order.recipient!!),
+            paymentInfo = PaymentInfo.from(order)
+        )
+    }
+
 }
