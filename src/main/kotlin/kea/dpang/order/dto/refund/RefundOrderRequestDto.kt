@@ -1,5 +1,7 @@
 package kea.dpang.order.dto.refund
 
+import jakarta.persistence.Convert
+import kea.dpang.order.converter.StringToReasonConverter
 import kea.dpang.order.entity.Reason
 
 /**
@@ -10,6 +12,7 @@ import kea.dpang.order.entity.Reason
  * @property retrievalMessage 회수 메시지
  */
 data class RefundOrderRequestDto(
+    @Convert(converter = StringToReasonConverter::class)
     val refundReason: Reason, // 환불 사유
     val remark: String?, // 비고
     val retrievalMessage: String? // 회수 메시지
