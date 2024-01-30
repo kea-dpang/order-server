@@ -109,7 +109,7 @@ class CancelServiceImpl(
 
         // 상품 정보를 조회한다.
         val orderDetail = cancel.orderDetail
-        val product = itemServiceFeignClient.getItemInfo(orderDetail.itemId).data
+        val product = itemServiceFeignClient.getItemInfo(orderDetail.itemId).body!!.data
 
         // 상품 정보, 주문 상세 정보, 취소 정보를 바탕으로 OrderedProductInfo를 생성한다.
         val orderedProductInfo = OrderedProductInfo(

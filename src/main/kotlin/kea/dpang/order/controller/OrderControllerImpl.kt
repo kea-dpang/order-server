@@ -13,6 +13,7 @@ import kea.dpang.order.entity.OrderStatus
 import kea.dpang.order.service.OrderService
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -48,8 +49,10 @@ class OrderControllerImpl(private val orderService: OrderService) : OrderControl
     @Operation(summary = "주문 목록 조회", description = "조건에 맞는 주문 목록을 조회합니다.")
     @GetMapping("/list")
     override fun getOrderList(
-        @Parameter(name = "주문 시작 날짜") @RequestParam(required = false) startDate: LocalDate?,
-        @Parameter(name = "주문 종료 날짜") @RequestParam(required = false) endDate: LocalDate?,
+        @Parameter(name = "주문 시작 날짜") @RequestParam(required = false)
+        @DateTimeFormat(pattern = "yyyy-MM-dd") startDate: LocalDate?,
+        @Parameter(name = "주문 종료 날짜") @RequestParam(required = false)
+        @DateTimeFormat(pattern = "yyyy-MM-dd") endDate: LocalDate?,
         @Parameter(name = "주문 상태") @RequestParam(required = false) orderStatus: OrderStatus?,
         @Parameter(name = "주문 ID") @RequestParam(required = false) orderId: Long?,
         pageable: Pageable

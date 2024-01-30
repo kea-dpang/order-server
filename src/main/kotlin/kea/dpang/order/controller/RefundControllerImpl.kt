@@ -13,6 +13,7 @@ import kea.dpang.order.entity.Reason
 import kea.dpang.order.service.RefundService
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -47,8 +48,10 @@ class RefundControllerImpl(private val refundService: RefundService) : RefundCon
     @Operation(summary = "환불 목록 조회", description = "조건에 맞는 환불 목록을 조회합니다.")
     @GetMapping("/list")
     override fun getRefundList(
-        @Parameter(name = "환불 요청 시작 날짜") @RequestParam(required = false) startDate: LocalDate?,
-        @Parameter(name = "환불 요청 종료 날짜") @RequestParam(required = false) endDate: LocalDate?,
+        @Parameter(name = "환불 요청 시작 날짜") @RequestParam(required = false)
+        @DateTimeFormat(pattern = "yyyy-MM-dd") startDate: LocalDate?,
+        @Parameter(name = "환불 요청 종료 날짜") @RequestParam(required = false)
+        @DateTimeFormat(pattern = "yyyy-MM-dd") endDate: LocalDate?,
         @Parameter(name = "환불 사유") @RequestParam(required = false) reason: Reason?,
         @Parameter(name = "환불 ID") @RequestParam(required = false) refundId: Long?,
         pageable: Pageable

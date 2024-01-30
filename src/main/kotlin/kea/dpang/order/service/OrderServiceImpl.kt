@@ -42,7 +42,7 @@ class OrderServiceImpl(
             val quantity = productInfo.quantity
 
             // 상품 정보를 받아온다.
-            val product = itemServiceFeignClient.getItemInfo(productId).data
+            val product = itemServiceFeignClient.getItemInfo(productId).body!!.data
             log.info("상품 정보 조회 완료. 상품 ID: {}, 상품 정보: {}", productId, product)
 
             if (product.quantity < quantity) {
@@ -55,10 +55,10 @@ class OrderServiceImpl(
 
         // 사용자의 마일리지가 총 비용보다 많은지 확인한다.
         val response = mileageServiceFeignClient.getUserMileage(userId, userId)
-        log.info("마일리지 조회 완료. 사용자 ID: {}, 마일리지 정보: {}", userId, response.data)
+        log.info("마일리지 조회 완료. 사용자 ID: {}, 마일리지 정보: {}", userId, response.body!!.data)
 
-        if (response.data.mileage < totalCost) {
-            log.error("마일리지 부족. 사용자 ID: {}, 필요 마일리지: {}, 보유 마일리지: {}", userId, totalCost, response.data.mileage)
+        if (response.body!!.data.mileage < totalCost) {
+            log.error("마일리지 부족. 사용자 ID: {}, 필요 마일리지: {}, 보유 마일리지: {}", userId, totalCost, response.body!!.data.mileage)
             throw InsufficientMileageException(userId)
         }
 
@@ -134,7 +134,7 @@ class OrderServiceImpl(
         order.details = orderRequestDto.orderIteminfo.map { orderIteminfo ->
 
             // 상품 서비스로부터 상품 정보를 조회한다.
-            val itemInfo = itemServiceFeignClient.getItemInfo(orderIteminfo.itemId).data
+            val itemInfo = itemServiceFeignClient.getItemInfo(orderIteminfo.itemId).body!!.data
 
             // 주문 상세 정보를 생성한다.
             OrderDetail(
@@ -232,7 +232,7 @@ class OrderServiceImpl(
 
         // 상품 서비스로부터 상품 정보 조회 및 DTO 설정
         val productList = order.details.map { orderDetail ->
-            val productInfo = itemServiceFeignClient.getItemInfo(orderDetail.itemId).data // 상품 정보 가져오기
+            val productInfo = itemServiceFeignClient.getItemInfo(orderDetail.itemId).body!!.data // 상품 정보 가져오기
 
             OrderedProductInfo(
                 orderDetailId = orderDetail.id!!,

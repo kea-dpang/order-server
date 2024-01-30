@@ -10,6 +10,7 @@ import kea.dpang.order.entity.Reason
 import kea.dpang.order.service.CancelService
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
@@ -44,8 +45,10 @@ class CancelControllerImpl(private val cancelService: CancelService) : CancelCon
     @Operation(summary = "취소 목록 조회", description = "조건에 맞는 취소 목록을 조회합니다.")
     @GetMapping("/list")
     override fun getCancelList(
-        @Parameter(name = "취소 요청 시작 날짜") @RequestParam(required = false) startDate: LocalDate?,
-        @Parameter(name = "취소 요청 종료 날짜") @RequestParam(required = false) endDate: LocalDate?,
+        @Parameter(name = "취소 요청 시작 날짜") @RequestParam(required = false)
+        @DateTimeFormat(pattern = "yyyy-MM-dd") startDate: LocalDate?,
+        @Parameter(name = "취소 요청 종료 날짜") @RequestParam(required = false)
+        @DateTimeFormat(pattern = "yyyy-MM-dd") endDate: LocalDate?,
         @Parameter(name = "취소 사유") @RequestParam(required = false) reason: Reason?,
         @Parameter(name = "취소 ID") @RequestParam(required = false) cancelId: Long?,
         pageable: Pageable

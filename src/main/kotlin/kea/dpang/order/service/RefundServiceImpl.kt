@@ -137,7 +137,7 @@ class RefundServiceImpl(
         val order = orderDetail.order
 
         // ProductInfoDto 생성
-        val productInfo = itemServiceFeignClient.getItemInfo(orderDetail.itemId).data // 상품 정보 가져오기
+        val productInfo = itemServiceFeignClient.getItemInfo(orderDetail.itemId).body!!.data // 상품 정보 가져오기
         val productInfoDto = ProductInfoDto.from(productInfo)
 
         // OrderedProductInfo 생성
