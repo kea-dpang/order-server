@@ -19,7 +19,7 @@ interface MileageServiceFeignClient {
      * @param userId 마일리지를 조회할 사용자의 ID
      * @return 마일리지 정보가 담긴 응답 객체
      */
-    @GetMapping("/{userId}")
+    @GetMapping("/api/mileage/{userId}")
     fun getUserMileage(
         @RequestHeader("X-DPANG-CLIENT-ID") clientId: Long,
         @PathVariable userId: Long
@@ -32,7 +32,7 @@ interface MileageServiceFeignClient {
      * @param request 마일리지 소비 요청 정보가 담긴 DTO
      * @return 요청의 처리 결과를 나타내는 응답 객체
      */
-    @PostMapping("/consume")
+    @PostMapping("/api/mileage/consume")
     fun consumeMileage(
         @RequestHeader("X-DPANG-CLIENT-ID") clientId: Long,
         @RequestBody request: ConsumeMileageRequestDto
@@ -45,7 +45,7 @@ interface MileageServiceFeignClient {
      * @param request 마일리지 환불 요청 정보를 담은 DTO.
      * @return 요청의 처리 결과를 나타내는 응답 객체
      */
-    @PostMapping("/refund")
+    @PostMapping("/api/mileage/refund")
     fun refundMileage(
         @RequestHeader("X-DPANG-CLIENT-ID") clientId: Long,
         @RequestBody request: RefundMileageRequestDTO
