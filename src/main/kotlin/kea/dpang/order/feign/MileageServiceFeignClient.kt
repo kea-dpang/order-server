@@ -6,6 +6,7 @@ import kea.dpang.order.feign.dto.ConsumeMileageRequestDto
 import kea.dpang.order.feign.dto.MileageDto
 import kea.dpang.order.feign.dto.RefundMileageRequestDTO
 import org.springframework.cloud.openfeign.FeignClient
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 
 @FeignClient(name = "mileage-server")
@@ -22,7 +23,7 @@ interface MileageServiceFeignClient {
     fun getUserMileage(
         @RequestHeader("X-DPANG-CLIENT-ID") clientId: Long,
         @PathVariable userId: Long
-    ): SuccessResponse<MileageDto>
+    ): ResponseEntity<SuccessResponse<MileageDto>>
 
     /**
      * 사용자의 마일리지를 소비하는 메서드
@@ -35,7 +36,7 @@ interface MileageServiceFeignClient {
     fun consumeMileage(
         @RequestHeader("X-DPANG-CLIENT-ID") clientId: Long,
         @RequestBody request: ConsumeMileageRequestDto
-    ): BaseResponse
+    ): ResponseEntity<BaseResponse>
 
     /**
      * 사용자의 마일리지를 환불하는 메서드
@@ -48,5 +49,5 @@ interface MileageServiceFeignClient {
     fun refundMileage(
         @RequestHeader("X-DPANG-CLIENT-ID") clientId: Long,
         @RequestBody request: RefundMileageRequestDTO
-    ): BaseResponse
+    ): ResponseEntity<BaseResponse>
 }

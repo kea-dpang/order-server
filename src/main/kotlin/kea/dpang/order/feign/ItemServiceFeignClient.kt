@@ -3,6 +3,7 @@ package kea.dpang.order.feign
 import kea.dpang.order.base.SuccessResponse
 import kea.dpang.order.feign.dto.ItemInfoDto
 import org.springframework.cloud.openfeign.FeignClient
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -19,7 +20,7 @@ interface ItemServiceFeignClient {
      * @return ProductInfoDto 상품 정보가 담긴 DTO.
      */
     @GetMapping("/api/items/{itemId}")
-    fun getItemInfo(@PathVariable itemId: Long): SuccessResponse<ItemInfoDto>
+    fun getItemInfo(@PathVariable itemId: Long): ResponseEntity<SuccessResponse<ItemInfoDto>>
 
     /**
      * 상품의 재고 수량을 증가시키는 메서드.
@@ -29,7 +30,7 @@ interface ItemServiceFeignClient {
      * @return Boolean 재고 증가가 성공적으로 이루어졌다면 true, 그렇지 않다면 false.
      */
     @PutMapping("/api/items/{itemId}/increase/{quantity}")
-    fun increaseItemStock(@PathVariable itemId: Long, @PathVariable quantity: Int): SuccessResponse<ItemInfoDto>
+    fun increaseItemStock(@PathVariable itemId: Long, @PathVariable quantity: Int): ResponseEntity<SuccessResponse<ItemInfoDto>>
 
     /**
      * 상품의 재고 수량을 감소시키는 메서드.
@@ -39,6 +40,6 @@ interface ItemServiceFeignClient {
      * @return Boolean 재고 감소가 성공적으로 이루어졌다면 true, 그렇지 않다면 false.
      */
     @PostMapping("/api/items/{itemId}/decrease/{quantity}")
-    fun decreaseItemStock(@PathVariable itemId: Long, @PathVariable quantity: Int): SuccessResponse<ItemInfoDto>
+    fun decreaseItemStock(@PathVariable itemId: Long, @PathVariable quantity: Int): ResponseEntity<SuccessResponse<ItemInfoDto>>
 
 }
