@@ -3,7 +3,7 @@ package kea.dpang.order.converter
 import org.springframework.core.convert.converter.Converter
 import org.springframework.stereotype.Component
 import kea.dpang.order.entity.Reason
-import kea.dpang.order.exception.InvalidReasonChangeException
+import kea.dpang.order.exception.InvalidReasonException
 
 @Component
 class StringToReasonConverter : Converter<String, Reason> {
@@ -12,7 +12,7 @@ class StringToReasonConverter : Converter<String, Reason> {
         return try {
             Reason.valueOf(source.uppercase())
         } catch (e: IllegalArgumentException) {
-            throw InvalidReasonChangeException(source)
+            throw InvalidReasonException(source)
         }
     }
 }
