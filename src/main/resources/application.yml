@@ -7,3 +7,9 @@ spring:
       ddl-auto: update
 
     show-sql: true
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    kea.dpang.order.feign.*: DEBUG
+
