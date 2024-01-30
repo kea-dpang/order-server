@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 
 // Todo: 서비스간 JWT 토큰 인증 여부 확인 및 상품 서비스 API 확인
-@FeignClient(name = "item-service")
+@FeignClient(name = "item-server")
 interface ItemServiceFeignClient {
 
     /**
