@@ -8,7 +8,7 @@ import kea.dpang.order.feign.dto.RefundMileageRequestDTO
 import org.springframework.cloud.openfeign.FeignClient
 import org.springframework.web.bind.annotation.*
 
-@FeignClient(name = "mileage-service")
+@FeignClient(name = "mileage-server")
 interface MileageServiceFeignClient {
 
     /**
