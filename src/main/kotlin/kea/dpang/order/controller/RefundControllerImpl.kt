@@ -27,8 +27,8 @@ class RefundControllerImpl(private val refundService: RefundService) : RefundCon
     @Operation(summary = "주문 환불 요청", description = "주문에 대한 환불을 요청합니다.")
     @PostMapping("/{orderDetailId}")
     override fun refundOrder(
-        @Parameter(name = "주문 상세 ID") @PathVariable orderDetailId: Long,
-        @Parameter(name = "환불 요청 정보") @RequestBody refundOrderRequest: RefundOrderRequestDto
+        @Parameter(description = "주문 상세 ID") @PathVariable orderDetailId: Long,
+        @Parameter(description = "환불 요청 정보") @RequestBody refundOrderRequest: RefundOrderRequestDto
     ): ResponseEntity<BaseResponse> {
 
         refundService.refundOrder(orderDetailId, refundOrderRequest)
@@ -38,7 +38,7 @@ class RefundControllerImpl(private val refundService: RefundService) : RefundCon
     @Operation(summary = "환불 정보 조회", description = "환불 정보를 조회합니다.")
     @GetMapping("/{refundId}")
     override fun getRefund(
-        @Parameter(name = "환불 ID") @PathVariable refundId: Long
+        @Parameter(description = "환불 ID") @PathVariable refundId: Long
     ): ResponseEntity<SuccessResponse<RefundDetailDto>> {
 
         val refundDetail = refundService.getRefund(refundId)
@@ -48,12 +48,12 @@ class RefundControllerImpl(private val refundService: RefundService) : RefundCon
     @Operation(summary = "환불 목록 조회", description = "조건에 맞는 환불 목록을 조회합니다.")
     @GetMapping("/list")
     override fun getRefundList(
-        @Parameter(name = "환불 요청 시작 날짜") @RequestParam(required = false)
+        @Parameter(description = "환불 요청 시작 날짜") @RequestParam(required = false)
         @DateTimeFormat(pattern = "yyyy-MM-dd") startDate: LocalDate?,
-        @Parameter(name = "환불 요청 종료 날짜") @RequestParam(required = false)
+        @Parameter(description = "환불 요청 종료 날짜") @RequestParam(required = false)
         @DateTimeFormat(pattern = "yyyy-MM-dd") endDate: LocalDate?,
-        @Parameter(name = "환불 사유") @RequestParam(required = false) reason: Reason?,
-        @Parameter(name = "환불 ID") @RequestParam(required = false) refundId: Long?,
+        @Parameter(description = "환불 사유") @RequestParam(required = false) reason: Reason?,
+        @Parameter(description = "환불 ID") @RequestParam(required = false) refundId: Long?,
         pageable: Pageable
     ): ResponseEntity<SuccessResponse<Page<RefundDto>>> {
 
@@ -64,8 +64,8 @@ class RefundControllerImpl(private val refundService: RefundService) : RefundCon
     @Operation(summary = "환불 상태 업데이트", description = "환불 상태를 업데이트합니다.")
     @PutMapping("/{orderDetailId}")
     override fun updateRefundStatus(
-        @Parameter(name = "주문 상세 ID") @PathVariable orderDetailId: Long,
-        @Parameter(name = "환불 상태 정보") @RequestBody refundStatusDto: RefundStatusDto
+        @Parameter(description = "주문 상세 ID") @PathVariable orderDetailId: Long,
+        @Parameter(description = "환불 상태 정보") @RequestBody refundStatusDto: RefundStatusDto
     ): ResponseEntity<BaseResponse> {
 
         refundService.updateRefundStatus(orderDetailId, refundStatusDto)

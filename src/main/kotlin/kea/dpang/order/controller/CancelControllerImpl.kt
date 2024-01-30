@@ -24,8 +24,8 @@ class CancelControllerImpl(private val cancelService: CancelService) : CancelCon
     @Operation(summary = "주문 취소", description = "주문을 취소합니다.")
     @PostMapping("/{orderDetailId}")
     override fun cancelOrder(
-        @Parameter(name = "주문 상세 ID") @PathVariable orderDetailId: Long,
-        @Parameter(name = "취소 사유") @RequestParam reason: Reason
+        @Parameter(description = "주문 상세 ID") @PathVariable orderDetailId: Long,
+        @Parameter(description = "취소 사유") @RequestParam reason: Reason
     ): ResponseEntity<BaseResponse> {
 
         cancelService.cancelOrder(orderDetailId, reason)
@@ -35,7 +35,7 @@ class CancelControllerImpl(private val cancelService: CancelService) : CancelCon
     @Operation(summary = "취소 정보 조회", description = "취소 정보를 조회합니다.")
     @GetMapping("/{cancelId}")
     override fun getCancel(
-        @Parameter(name = "취소 ID") @PathVariable cancelId: Long
+        @Parameter(description = "취소 ID") @PathVariable cancelId: Long
     ): ResponseEntity<SuccessResponse<CancelDto>> {
 
         val cancelInfo = cancelService.getCancel(cancelId)
@@ -45,12 +45,12 @@ class CancelControllerImpl(private val cancelService: CancelService) : CancelCon
     @Operation(summary = "취소 목록 조회", description = "조건에 맞는 취소 목록을 조회합니다.")
     @GetMapping("/list")
     override fun getCancelList(
-        @Parameter(name = "취소 요청 시작 날짜") @RequestParam(required = false)
+        @Parameter(description = "취소 요청 시작 날짜") @RequestParam(required = false)
         @DateTimeFormat(pattern = "yyyy-MM-dd") startDate: LocalDate?,
-        @Parameter(name = "취소 요청 종료 날짜") @RequestParam(required = false)
+        @Parameter(description = "취소 요청 종료 날짜") @RequestParam(required = false)
         @DateTimeFormat(pattern = "yyyy-MM-dd") endDate: LocalDate?,
-        @Parameter(name = "취소 사유") @RequestParam(required = false) reason: Reason?,
-        @Parameter(name = "취소 ID") @RequestParam(required = false) cancelId: Long?,
+        @Parameter(description = "취소 사유") @RequestParam(required = false) reason: Reason?,
+        @Parameter(description = "취소 ID") @RequestParam(required = false) cancelId: Long?,
         pageable: Pageable
     ): ResponseEntity<SuccessResponse<Page<CancelDto>>> {
 
