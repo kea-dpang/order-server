@@ -27,8 +27,8 @@ class OrderControllerImpl(private val orderService: OrderService) : OrderControl
     @Operation(summary = "주문하기", description = "새로운 주문을 등록합니다.")
     @PostMapping
     override fun placeOrder(
-        @Parameter(name = "사용자 ID") @RequestHeader("X-DPANG-CLIENT-ID") userId: Long,
-        @Parameter(name = "주문 요청 정보") @RequestBody orderRequest: OrderRequestDto
+        @Parameter(description = "사용자 ID") @RequestHeader("X-DPANG-CLIENT-ID") userId: Long,
+        @Parameter(description = "주문 요청 정보") @RequestBody orderRequest: OrderRequestDto
     ): ResponseEntity<SuccessResponse<OrderDto>> {
 
         val orderResult = orderService.placeOrder(userId, orderRequest)
@@ -38,8 +38,8 @@ class OrderControllerImpl(private val orderService: OrderService) : OrderControl
     @Operation(summary = "주문 상태 수정", description = "주문의 상태를 수정합니다.")
     @PutMapping("/{orderId}")
     override fun updateOrderStatus(
-        @Parameter(name = "주문 ID") @PathVariable orderId: Long,
-        @Parameter(name = "주문 상태 정보") @RequestBody updateOrderStatusRequest: UpdateOrderStatusRequestDto
+        @Parameter(description = "주문 ID") @PathVariable orderId: Long,
+        @Parameter(description = "주문 상태 정보") @RequestBody updateOrderStatusRequest: UpdateOrderStatusRequestDto
     ): ResponseEntity<BaseResponse> {
 
         orderService.updateOrderStatus(orderId, updateOrderStatusRequest)
@@ -49,12 +49,12 @@ class OrderControllerImpl(private val orderService: OrderService) : OrderControl
     @Operation(summary = "주문 목록 조회", description = "조건에 맞는 주문 목록을 조회합니다.")
     @GetMapping("/list")
     override fun getOrderList(
-        @Parameter(name = "주문 시작 날짜") @RequestParam(required = false)
+        @Parameter(description = "주문 시작 날짜") @RequestParam(required = false)
         @DateTimeFormat(pattern = "yyyy-MM-dd") startDate: LocalDate?,
-        @Parameter(name = "주문 종료 날짜") @RequestParam(required = false)
+        @Parameter(description = "주문 종료 날짜") @RequestParam(required = false)
         @DateTimeFormat(pattern = "yyyy-MM-dd") endDate: LocalDate?,
-        @Parameter(name = "주문 상태") @RequestParam(required = false) orderStatus: OrderStatus?,
-        @Parameter(name = "주문 ID") @RequestParam(required = false) orderId: Long?,
+        @Parameter(description = "주문 상태") @RequestParam(required = false) orderStatus: OrderStatus?,
+        @Parameter(description = "주문 ID") @RequestParam(required = false) orderId: Long?,
         pageable: Pageable
     ): ResponseEntity<SuccessResponse<Page<OrderDto>>> {
 
@@ -65,7 +65,7 @@ class OrderControllerImpl(private val orderService: OrderService) : OrderControl
     @Operation(summary = "주문 상세 조회", description = "주문의 상세 정보를 조회합니다.")
     @GetMapping("/{orderId}")
     override fun getOrder(
-        @Parameter(name = "주문 ID") @PathVariable orderId: Long
+        @Parameter(description = "주문 ID") @PathVariable orderId: Long
     ): ResponseEntity<SuccessResponse<OrderDetailDto>> {
 
         val orderDetail = orderService.getOrder(orderId)

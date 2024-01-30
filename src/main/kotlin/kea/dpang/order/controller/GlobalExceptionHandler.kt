@@ -32,7 +32,9 @@ class GlobalExceptionHandler {
         OrderAlreadyInRequestedStatusException::class,
         RefundAlreadyInRequestedStatusException::class,
         UnableToCancelException::class,
-        UnableToRefundException::class
+        UnableToRefundException::class,
+        InvalidOrderStatusException::class,
+        InvalidReasonException::class
     )
     fun handleBadRequestException(ex: RuntimeException, request: WebRequest): ResponseEntity<ErrorResponse> {
         return generateErrorResponse(ex, request, HttpStatus.BAD_REQUEST)
