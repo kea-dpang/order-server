@@ -4,7 +4,6 @@ import com.querydsl.core.BooleanBuilder
 import com.querydsl.jpa.impl.JPAQueryFactory
 import kea.dpang.order.entity.Cancel
 import kea.dpang.order.entity.QCancel
-import kea.dpang.order.entity.Reason
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Repository
@@ -23,12 +22,10 @@ class CancelRepositoryCustomImpl(
     override fun findCancels(
         startDate: LocalDate?,
         endDate: LocalDate?,
-        reason: Reason?,
         cancelId: Long?,
         pageable: Pageable
     ): Page<Cancel> {
         val builder = BooleanBuilder()
-        reason?.let { builder.and(QCancel.cancel.reason.eq(it)) }
         return findEntities(startDate, endDate, cancelId, pageable, builder)
     }
 }

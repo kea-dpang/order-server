@@ -9,7 +9,6 @@ import java.time.LocalDateTime
  *
  * @property id 취소 ID
  * @property orderDetail 주문 상세 정보 엔티티
- * @property reason 취소 사유
  * @property requestDate 취소 요청 날짜
  * @property completeDate 취소 완료 날짜
  */
@@ -24,10 +23,6 @@ data class Cancel(
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_detail_id")
     var orderDetail: OrderDetail, // 주문 ID
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "cancel_reason")
-    var reason: Reason, // 취소 사유
 
     @CreationTimestamp
     @Column(name = "cancel_request_date")
