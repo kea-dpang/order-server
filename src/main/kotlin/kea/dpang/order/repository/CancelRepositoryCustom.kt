@@ -1,7 +1,6 @@
 package kea.dpang.order.repository
 
 import kea.dpang.order.entity.Cancel
-import kea.dpang.order.entity.Reason
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import java.time.LocalDate
@@ -16,7 +15,6 @@ interface CancelRepositoryCustom {
      *
      * @param startDate     조회할 취소의 시작 날짜
      * @param endDate       조회할 취소의 종료 날짜
-     * @param reason        조회할 취소의 이유
      * @param cancelId      조회할 취소의 식별자
      * @param pageable      페이징 정보를 나타내는 [Pageable] 객체
      * @return [Page] 인터페이스를 구현한 객체를 통해 페이징 처리된 취소 목록
@@ -24,7 +22,6 @@ interface CancelRepositoryCustom {
     fun findCancels(
         startDate: LocalDate?,
         endDate: LocalDate?,
-        reason: Reason?,
         cancelId: Long?,
         pageable: Pageable
     ): Page<Cancel>
