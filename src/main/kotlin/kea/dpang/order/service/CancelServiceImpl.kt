@@ -6,7 +6,6 @@ import kea.dpang.order.dto.cancel.CancelDto
 import kea.dpang.order.entity.Cancel
 import kea.dpang.order.entity.OrderStatus.CANCELLED
 import kea.dpang.order.entity.OrderStatus.PAYMENT_COMPLETED
-import kea.dpang.order.entity.Reason
 import kea.dpang.order.exception.CancelNotFoundException
 import kea.dpang.order.exception.OrderDetailNotFoundException
 import kea.dpang.order.exception.UnableToCancelException
@@ -33,8 +32,8 @@ class CancelServiceImpl(
 
     private val log = LoggerFactory.getLogger(CancelServiceImpl::class.java)
 
-    override fun cancelOrder(orderDetailId: Long, reason: Reason) {
-        log.info("주문 취소 시작. 주문 상세 ID: {}, 취소 사유: {}", orderDetailId, reason)
+    override fun cancelOrder(orderDetailId: Long) {
+        log.info("주문 취소 시작. 주문 상세 ID: {}", orderDetailId)
 
         // 주문 상세 ID를 사용하여 주문 상세 정보를 조회한다.
         val orderDetail = orderDetailRepository.findById(orderDetailId)
@@ -54,13 +53,12 @@ class CancelServiceImpl(
 
         // 주문 취소 정보
         val cancel = Cancel(
-            orderDetail = orderDetail,
-            reason = reason
+            orderDetail = orderDetail
         )
 
         // 취소 정보를 데이터베이스에 저장한다.
         cancelRepository.save(cancel)
-        log.info("주문 취소 완료. 주문 상세 ID: {}, 취소 사유: {}", orderDetailId, reason)
+        log.info("주문 취소 완료. 주문 상세 ID: {}", orderDetailId)
 
         // 주문 상세 정보에 취소 정보를 연관 관계 편의 메서드를 사용하여 추가한다.
         orderDetail.assignCancel(cancel)
@@ -138,14 +136,13 @@ class CancelServiceImpl(
     override fun getCancelList(
         startDate: LocalDate?,
         endDate: LocalDate?,
-        reason: Reason?,
         cancelId: Long?,
         pageable: Pageable
     ): Page<CancelDto> {
-        log.info("취소 목록 조회 시작. 시작 날짜: {}, 종료 날짜: {}, 취소 사유: {}, 취소 ID: {}, 페이지 정보: {}", startDate, endDate, reason, cancelId, pageable)
+        log.info("취소 목록 조회 시작. 시작 날짜: {}, 종료 날짜: {}, 취소 ID: {}, 페이지 정보: {}", startDate, endDate, cancelId, pageable)
 
         val cancelList = cancelRepository
-            .findCancels(startDate, endDate, reason, cancelId, pageable)
+            .findCancels(startDate, endDate, cancelId, pageable)
             .map { convertCancelEntityToDto(it) }
 
         log.info("취소 목록 조회 완료. 조회된 취소 건수: {}", cancelList.totalElements)

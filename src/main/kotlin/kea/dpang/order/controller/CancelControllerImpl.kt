@@ -6,7 +6,6 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import kea.dpang.order.base.BaseResponse
 import kea.dpang.order.base.SuccessResponse
 import kea.dpang.order.dto.cancel.CancelDto
-import kea.dpang.order.entity.Reason
 import kea.dpang.order.service.CancelService
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -24,11 +23,10 @@ class CancelControllerImpl(private val cancelService: CancelService) : CancelCon
     @Operation(summary = "주문 취소", description = "주문을 취소합니다.")
     @PostMapping("/{orderDetailId}")
     override fun cancelOrder(
-        @Parameter(description = "주문 상세 ID") @PathVariable orderDetailId: Long,
-        @Parameter(description = "취소 사유") @RequestParam reason: Reason
+        @Parameter(description = "주문 상세 ID") @PathVariable orderDetailId: Long
     ): ResponseEntity<BaseResponse> {
 
-        cancelService.cancelOrder(orderDetailId, reason)
+        cancelService.cancelOrder(orderDetailId)
         return ResponseEntity.ok(BaseResponse(HttpStatus.OK.value(), "주문이 취소되었습니다."))
     }
 
@@ -49,12 +47,11 @@ class CancelControllerImpl(private val cancelService: CancelService) : CancelCon
         @DateTimeFormat(pattern = "yyyy-MM-dd") startDate: LocalDate?,
         @Parameter(description = "취소 요청 종료 날짜") @RequestParam(required = false)
         @DateTimeFormat(pattern = "yyyy-MM-dd") endDate: LocalDate?,
-        @Parameter(description = "취소 사유") @RequestParam(required = false) reason: Reason?,
         @Parameter(description = "취소 ID") @RequestParam(required = false) cancelId: Long?,
         pageable: Pageable
     ): ResponseEntity<SuccessResponse<Page<CancelDto>>> {
 
-        val cancelList = cancelService.getCancelList(startDate, endDate, reason, cancelId, pageable)
+        val cancelList = cancelService.getCancelList(startDate, endDate, cancelId, pageable)
         return ResponseEntity.ok(SuccessResponse(HttpStatus.OK.value(), "조회가 완료되었습니다.", cancelList))
     }
 
