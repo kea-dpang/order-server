@@ -38,7 +38,7 @@ class SecurityConfig {
             .headers { headers -> headers.frameOptions { it.disable() } } // X-Frame-Options 비활성화 (IFrame 사용 가능하도록).
             .formLogin { it.disable() } // formLogin 대신 Jwt를 사용하기 때문에 disable로 설정
             .logout { it.disable() } // 로그아웃 기능 비활성화.
-            .authorizeHttpRequests { it.anyRequest().authenticated() } // 모든 요청이 인증을 필요로 하도록 설정
+            .authorizeHttpRequests { it.anyRequest().permitAll() } // 모든 요청이 인증을 필요로 하도록 설정
             .build()
     }
 }
