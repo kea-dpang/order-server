@@ -45,10 +45,12 @@ abstract class BaseRepositoryCustomImpl<T>(
         pageable: Pageable,
         builder: BooleanBuilder
     ): Page<T> {
+        // 날짜와 ID 필드에 대한 검색 조건을 추가한다.
         startDate?.let { builder.and(datePath.goe(it.atStartOfDay())) }
         endDate?.let { builder.and(datePath.before(it.plusDays(1).atStartOfDay())) }
         id?.let { builder.and(idPath.eq(it)) }
 
+        // 쿼리를 실행하여 결과를 페이지네이션된 형태로 반환한다.
         val entityList = jpaQueryFactory
             .selectFrom(entityPath)
             .where(builder)
@@ -56,6 +58,14 @@ abstract class BaseRepositoryCustomImpl<T>(
             .limit(pageable.pageSize.toLong())
             .fetch()
 
-        return PageImpl(entityList, pageable, entityList.size.toLong())
+        // 전체 충전 요청 수를 가져온다.
+        val totalChargeRequests = jpaQueryFactory
+            .selectFrom(entityPath)
+            .where(builder)
+            .fetch()
+            .size
+            .toLong()
+
+        return PageImpl(entityList, pageable, totalChargeRequests)
     }
 }
