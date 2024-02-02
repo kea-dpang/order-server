@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   build-docker-image:
@@ -46,6 +47,15 @@ jobs:
           platforms: linux/amd64
           tags: ${{ secrets.KC_REGISTRY_URL }}/${{ secrets.IMAGE_NAME }}:${{ github.event.release.tag_name }}, ${{ secrets.KC_REGISTRY_URL }}/${{ secrets.IMAGE_NAME }}:latest
 
+      - name: slack-notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,action,ref,job,took
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: failure()
+
   update-k8s:
     needs: build-docker-image
     runs-on: ubuntu-latest
@@ -73,3 +83,34 @@ jobs:
           git add ./backend/${{ env.DIRECTORY_NAME }}/${{ env.REPO_NAME }}-deployment.yaml
           git commit -m "update: 이미지 버전 수정 ${{ secrets.IMAGE_NAME }} v${{ github.event.release.tag_name }} by Git Action"
           git push
+
+      - name: slack-notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took,pullRequest
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: failure()
+
+      - name: slack-notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,action,ref,job,took
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: failure()
+
+  slack-notification:
+    needs: [build-docker-image, update-k8s]
+    runs-on: ubuntu-latest
+    steps:
+      - name: slack-notification
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,action,ref
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        if: always()
