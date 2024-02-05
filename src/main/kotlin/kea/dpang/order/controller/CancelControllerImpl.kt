@@ -47,11 +47,11 @@ class CancelControllerImpl(private val cancelService: CancelService) : CancelCon
         @DateTimeFormat(pattern = "yyyy-MM-dd") startDate: LocalDate?,
         @Parameter(description = "취소 요청 종료 날짜") @RequestParam(required = false)
         @DateTimeFormat(pattern = "yyyy-MM-dd") endDate: LocalDate?,
-        @Parameter(description = "취소 ID") @RequestParam(required = false) cancelId: Long?,
+        @Parameter(description = "사용자 ID") @RequestParam(required = false) userId: Long?,
         pageable: Pageable
     ): ResponseEntity<SuccessResponse<Page<CancelDto>>> {
 
-        val cancelList = cancelService.getCancelList(startDate, endDate, cancelId, pageable)
+        val cancelList = cancelService.getCancelList(startDate, endDate, userId, pageable)
         return ResponseEntity.ok(SuccessResponse(HttpStatus.OK.value(), "조회가 완료되었습니다.", cancelList))
     }
 

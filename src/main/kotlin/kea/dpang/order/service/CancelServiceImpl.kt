@@ -147,13 +147,13 @@ class CancelServiceImpl(
     override fun getCancelList(
         startDate: LocalDate?,
         endDate: LocalDate?,
-        cancelId: Long?,
+        userId: Long?,
         pageable: Pageable
     ): Page<CancelDto> {
-        log.info("취소 목록 조회 시작. 시작 날짜: {}, 종료 날짜: {}, 취소 ID: {}, 페이지 정보: {}", startDate, endDate, cancelId, pageable)
+        log.info("취소 목록 조회 시작. 시작 날짜: {}, 종료 날짜: {}, 사용자 ID: {}, 페이지 정보: {}", startDate, endDate, userId, pageable)
 
         val cancelList = cancelRepository
-            .findCancels(startDate, endDate, cancelId, pageable)
+            .findCancels(startDate, endDate, userId, pageable)
             .map { convertCancelEntityToDto(it) }
 
         log.info("취소 목록 조회 완료. 조회된 취소 건수: {}", cancelList.totalElements)

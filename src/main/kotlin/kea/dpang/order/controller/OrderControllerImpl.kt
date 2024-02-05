@@ -54,11 +54,11 @@ class OrderControllerImpl(private val orderService: OrderService) : OrderControl
         @Parameter(description = "주문 종료 날짜") @RequestParam(required = false)
         @DateTimeFormat(pattern = "yyyy-MM-dd") endDate: LocalDate?,
         @Parameter(description = "주문 상태") @RequestParam(required = false) orderStatus: OrderStatus?,
-        @Parameter(description = "주문 ID") @RequestParam(required = false) orderId: Long?,
+        @Parameter(description = "사용자 ID") @RequestParam(required = false) userId: Long?,
         pageable: Pageable
     ): ResponseEntity<SuccessResponse<Page<OrderDto>>> {
 
-        val orderList = orderService.getOrderList(startDate, endDate, orderId, pageable)
+        val orderList = orderService.getOrderList(startDate, endDate, userId, pageable)
         return ResponseEntity.ok(SuccessResponse(HttpStatus.OK.value(), "조회가 완료되었습니다.", orderList))
     }
 

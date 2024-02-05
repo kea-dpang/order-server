@@ -16,16 +16,17 @@ class OrderRepositoryCustomImpl(
     jpaQueryFactory,
     QOrder.order,
     QOrder.order.date,
-    QOrder.order.id
+    QOrder.order.id,
+    QOrder.order.userId
 ), OrderRepositoryCustom {
 
     override fun findOrders(
         startDate: LocalDate?,
         endDate: LocalDate?,
-        orderId: Long?,
+        userId: Long?,
         pageable: Pageable
     ): Page<Order> {
         val builder = BooleanBuilder()
-        return findEntities(startDate, endDate, orderId, pageable, builder)
+        return findEntities(startDate, endDate, userId, pageable, builder)
     }
 }

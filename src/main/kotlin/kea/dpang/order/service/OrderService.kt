@@ -34,14 +34,14 @@ interface OrderService {
      *
      * @param startDate 조회 시작 날짜
      * @param endDate 조회 종료 날짜
-     * @param orderId 조회할 주문 번호
+     * @param userId 사용자 식별자
      * @param pageable 페이지네이션 정보
      * @return 조회된 주문 및 배송 목록
      */
     fun getOrderList(
         startDate: LocalDate?,
         endDate: LocalDate?,
-        orderId: Long?,
+        userId: Long?,
         pageable: Pageable
     ): Page<OrderDto>
 

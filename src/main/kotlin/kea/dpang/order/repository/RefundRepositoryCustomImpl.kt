@@ -2,6 +2,7 @@ package kea.dpang.order.repository
 
 import com.querydsl.core.BooleanBuilder
 import com.querydsl.jpa.impl.JPAQueryFactory
+import kea.dpang.order.entity.QOrderDetail
 import kea.dpang.order.entity.QRefund
 import kea.dpang.order.entity.Reason
 import kea.dpang.order.entity.Refund
@@ -17,18 +18,19 @@ class RefundRepositoryCustomImpl(
     jpaQueryFactory,
     QRefund.refund,
     QRefund.refund.refundRequestDate,
-    QRefund.refund.id
+    QRefund.refund.id,
+    QOrderDetail.orderDetail.order.userId
 ), RefundRepositoryCustom {
 
     override fun findRefunds(
         startDate: LocalDate?,
         endDate: LocalDate?,
         reason: Reason?,
-        refundId: Long?,
+        userId: Long?,
         pageable: Pageable
     ): Page<Refund> {
         val builder = BooleanBuilder()
         reason?.let { builder.and(QRefund.refund.refundReason.eq(it)) }
-        return findEntities(startDate, endDate, refundId, pageable, builder)
+        return findEntities(startDate, endDate, userId, pageable, builder)
     }
 }
