@@ -61,10 +61,14 @@ class OrderServiceImpl(
 
         // 사용자의 마일리지가 총 비용보다 많은지 확인한다.
         val response = mileageServiceFeignClient.getUserMileage(userId, userId)
-        log.info("마일리지 조회 완료. 사용자 ID: {}, 마일리지 정보: {}", userId, response.body!!.data)
+        val mileage = response.body!!.data.mileage
+        val personalChargedMileage = response.body!!.data.personalChargedMileage
+        val userTotalMileage = mileage + personalChargedMileage
 
-        if (response.body!!.data.mileage < totalCost) {
-            log.error("마일리지 부족. 사용자 ID: {}, 필요 마일리지: {}, 보유 마일리지: {}", userId, totalCost, response.body!!.data.mileage)
+        log.info("마일리지 조회 완료. 사용자 ID: {}, 총 마일리지: {} (마일리지: {}, 충전 마일리지: {})", userId, userTotalMileage, mileage, personalChargedMileage)
+
+        if (userTotalMileage < totalCost) {
+            log.error("마일리지 부족. 사용자 ID: {}, 필요 마일리지: {}, 보유 마일리지: {}", userId, totalCost, userTotalMileage)
             throw InsufficientMileageException(userId)
         }
 
@@ -179,7 +183,12 @@ class OrderServiceImpl(
 
         // 변경할 주문 상태가 현재 주문 상태와 동일한지 확인한다.
         if (order.status == targetStatus) {
-            log.error("주문 상태 변경 실패. 이미 요청된 상태입니다. 주문 상세 ID: {}, 현재 상태: {}, 요청 상태: {}", orderDetailId, order.status, targetStatus)
+            log.error(
+                "주문 상태 변경 실패. 이미 요청된 상태입니다. 주문 상세 ID: {}, 현재 상태: {}, 요청 상태: {}",
+                orderDetailId,
+                order.status,
+                targetStatus
+            )
             throw OrderAlreadyInRequestedStatusException()
         }
 
