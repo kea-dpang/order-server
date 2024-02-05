@@ -12,6 +12,8 @@ import kea.dpang.order.exception.UnableToCancelException
 import kea.dpang.order.feign.ItemServiceFeignClient
 import kea.dpang.order.feign.MileageServiceFeignClient
 import kea.dpang.order.feign.dto.RefundMileageRequestDTO
+import kea.dpang.order.feign.dto.UpdateStockListRequestDto
+import kea.dpang.order.feign.dto.UpdateStockRequestDto
 import kea.dpang.order.repository.CancelRepository
 import kea.dpang.order.repository.OrderDetailRepository
 import org.slf4j.LoggerFactory
@@ -64,7 +66,16 @@ class CancelServiceImpl(
         orderDetail.assignCancel(cancel)
 
         // 취소된 주문에 포함된 상품의 개수를 상품 서비스에 요청하여 재고를 증가시킨다.
-        itemServiceFeignClient.increaseItemStock(orderDetail.itemId, orderDetail.quantity)
+        itemServiceFeignClient.updateStock(
+            UpdateStockListRequestDto(
+                listOf(
+                    UpdateStockRequestDto(
+                        itemId = orderDetail.itemId,
+                        quantity = orderDetail.quantity
+                    )
+                )
+            )
+        )
         log.info("재고 증가 요청 완료. 상품 ID: {}, 증가량: {}", orderDetail.itemId, orderDetail.quantity)
 
         // 주문에 사용된 마일리지를 마일리지 서비스에 요청하여 사용자에게 환불한다.
