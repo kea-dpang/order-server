@@ -9,7 +9,7 @@ package kea.dpang.order.feign.dto
  * @property quantity 상품의 재고 수량
  * @property discountRate 상품의 할인율(% 단위)
  * @property discountPrice 할인 적용 후의 상품 가격
- * @property image 상품 이미지의 URL 또는 경로
+ * @property thumbnailImage 상품 이미지의 URL 또는 경로
  */
 data class ItemInfoDto(
     val id: Long, // 아이템 ID
@@ -18,5 +18,5 @@ data class ItemInfoDto(
     val quantity: Int, // 상품 재고 수량
     val discountRate: Int, // 상품 할인율
     val discountPrice: Int, // 상품 할인가
-    val image: String // 상품 이미지
+    val thumbnailImage: String // 상품 이미지
 )
