@@ -18,7 +18,7 @@ data class ProductInfoDto(
     companion object {
         fun from(itemInfoDto: ItemInfoDto): ProductInfoDto {
             return ProductInfoDto(
-                image = itemInfoDto.image,
+                image = itemInfoDto.thumbnailImage,
                 name = itemInfoDto.name,
                 price = itemInfoDto.price
             )
