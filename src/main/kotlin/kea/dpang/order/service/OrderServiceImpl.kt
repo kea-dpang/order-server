@@ -3,12 +3,18 @@ package kea.dpang.order.service
 import kea.dpang.order.dto.OrderedProductInfo
 import kea.dpang.order.dto.ProductInfoDto
 import kea.dpang.order.dto.order.*
-import kea.dpang.order.entity.*
-import kea.dpang.order.entity.OrderStatus.*
+import kea.dpang.order.entity.Order
+import kea.dpang.order.entity.OrderDetail
+import kea.dpang.order.entity.OrderRecipient
+import kea.dpang.order.entity.OrderStatus
+import kea.dpang.order.entity.OrderStatus.ORDER_RECEIVED
+import kea.dpang.order.entity.OrderStatus.PAYMENT_COMPLETED
 import kea.dpang.order.exception.*
 import kea.dpang.order.feign.ItemServiceFeignClient
 import kea.dpang.order.feign.MileageServiceFeignClient
 import kea.dpang.order.feign.dto.ConsumeMileageRequestDto
+import kea.dpang.order.feign.dto.UpdateStockListRequestDto
+import kea.dpang.order.feign.dto.UpdateStockRequestDto
 import kea.dpang.order.repository.OrderDetailRepository
 import kea.dpang.order.repository.OrderRepository
 import org.slf4j.LoggerFactory
@@ -70,13 +76,17 @@ class OrderServiceImpl(
         log.info("주문 정보 저장 완료. 주문 ID: {}", order.id)
 
         // 주문이 성공적으로 처리되면, 주문 상품의 재고를 감소시키고,
-        for (productInfo in productInfoList) {
-            val productId = productInfo.itemId
-            val quantity = productInfo.quantity
+        val dto = UpdateStockListRequestDto(
+            productInfoList.map { productInfo ->
+                UpdateStockRequestDto(
+                    itemId = productInfo.itemId,
+                    quantity = -productInfo.quantity
+                )
+            }
+        )
 
-            itemServiceFeignClient.decreaseItemStock(productId, quantity)
-            log.info("재고 감소 요청 완료. 상품 ID: {}, 감소량: {}", productId, quantity)
-        }
+        itemServiceFeignClient.updateStock(dto)
+        log.info("상품 재고 감소 요청 완료.")
 
         // 사용자의 마일리지를 감소시킨다.
         val consumeMileageRequest = ConsumeMileageRequestDto(

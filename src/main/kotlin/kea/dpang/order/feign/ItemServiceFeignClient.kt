@@ -1,13 +1,15 @@
 package kea.dpang.order.feign
 
+import kea.dpang.order.base.BaseResponse
 import kea.dpang.order.base.SuccessResponse
 import kea.dpang.order.feign.dto.ItemInfoDto
+import kea.dpang.order.feign.dto.UpdateStockListRequestDto
 import org.springframework.cloud.openfeign.FeignClient
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
+import org.springframework.web.bind.annotation.RequestBody
 
 // Todo: 서비스간 JWT 토큰 인증 여부 확인 및 상품 서비스 API 확인
 @FeignClient(name = "item-server")
@@ -23,23 +25,14 @@ interface ItemServiceFeignClient {
     fun getItemInfo(@PathVariable itemId: Long): ResponseEntity<SuccessResponse<ItemInfoDto>>
 
     /**
-     * 상품의 재고 수량을 증가시키는 메서드.
+     * 상품의 재고를 변경하는 메서드.
      *
-     * @param itemId 재고를 증가시킬 상품의 ID.
-     * @param quantity 증가시킬 수량.
-     * @return Boolean 재고 증가가 성공적으로 이루어졌다면 true, 그렇지 않다면 false.
+     * @param dto 변경할 상품의 ID와 변경할 수량이 담긴 DTO.
+     * @return 요청의 처리 결과를 나타내는 응답 객체.
      */
-    @PutMapping("/api/items/{itemId}/increase/{quantity}")
-    fun increaseItemStock(@PathVariable itemId: Long, @PathVariable quantity: Int): ResponseEntity<SuccessResponse<ItemInfoDto>>
-
-    /**
-     * 상품의 재고 수량을 감소시키는 메서드.
-     *
-     * @param itemId 재고를 감소시킬 상품의 ID.
-     * @param quantity 감소시킬 수량.
-     * @return Boolean 재고 감소가 성공적으로 이루어졌다면 true, 그렇지 않다면 false.
-     */
-    @PostMapping("/api/items/{itemId}/decrease/{quantity}")
-    fun decreaseItemStock(@PathVariable itemId: Long, @PathVariable quantity: Int): ResponseEntity<SuccessResponse<ItemInfoDto>>
+    @PutMapping("/api/items/stock")
+    fun updateStock(
+        @RequestBody dto: UpdateStockListRequestDto
+    ): ResponseEntity<BaseResponse>
 
 }

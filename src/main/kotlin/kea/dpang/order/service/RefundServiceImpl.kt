@@ -12,6 +12,8 @@ import kea.dpang.order.exception.*
 import kea.dpang.order.feign.ItemServiceFeignClient
 import kea.dpang.order.feign.MileageServiceFeignClient
 import kea.dpang.order.feign.dto.RefundMileageRequestDTO
+import kea.dpang.order.feign.dto.UpdateStockListRequestDto
+import kea.dpang.order.feign.dto.UpdateStockRequestDto
 import kea.dpang.order.repository.OrderDetailRepository
 import kea.dpang.order.repository.RefundRepository
 import org.slf4j.LoggerFactory
@@ -78,7 +80,16 @@ class RefundServiceImpl(
         orderDetail.assignRefund(refund)
 
         // 취소된 주문에 포함된 상품의 개수를 상품 서비스에 요청하여 재고를 증가시킨다.
-        itemServiceFeignClient.increaseItemStock(orderDetail.itemId, orderDetail.quantity)
+        itemServiceFeignClient.updateStock(
+            UpdateStockListRequestDto(
+                listOf(
+                    UpdateStockRequestDto(
+                        itemId = orderDetail.itemId,
+                        quantity = orderDetail.quantity
+                    )
+                )
+            )
+        )
         log.info("상품 재고 증가 요청 완료. 상품 ID: {}, 수량: {}", orderDetail.itemId, orderDetail.quantity)
 
         // 주문에 사용된 마일리지를 마일리지 서비스에 요청하여 사용자에게 환불한다.
@@ -174,7 +185,14 @@ class RefundServiceImpl(
         refundId: Long?,
         pageable: Pageable
     ): Page<RefundDto> {
-        log.info("환불 목록 검색 시작. 시작 날짜: {}, 종료 날짜: {}, 환불 사유: {}, 환불 ID: {}, 페이지 정보: {}", startDate, endDate, reason, refundId, pageable)
+        log.info(
+            "환불 목록 검색 시작. 시작 날짜: {}, 종료 날짜: {}, 환불 사유: {}, 환불 ID: {}, 페이지 정보: {}",
+            startDate,
+            endDate,
+            reason,
+            refundId,
+            pageable
+        )
 
         return refundRepository
             .findRefunds(startDate, endDate, reason, refundId, pageable)
@@ -224,7 +242,16 @@ class RefundServiceImpl(
             log.info("마일리지 환불 요청 완료. 사용자 ID: {}, 환불 금액: {}", orderDetail.order.userId, orderDetail.purchasePrice)
 
             // 취소된 주문에 포함된 상품의 개수를 상품 서비스에 요청하여 재고를 증가시킨다.
-            itemServiceFeignClient.increaseItemStock(refund.orderDetail.itemId, refund.orderDetail.quantity)
+            itemServiceFeignClient.updateStock(
+                UpdateStockListRequestDto(
+                    listOf(
+                        UpdateStockRequestDto(
+                            itemId = orderDetail.itemId,
+                            quantity = orderDetail.quantity
+                        )
+                    )
+                )
+            )
             log.info("재고 증가 요청 완료. 상품 ID: {}, 증가량: {}", refund.orderDetail.itemId, refund.orderDetail.quantity)
         }
 
