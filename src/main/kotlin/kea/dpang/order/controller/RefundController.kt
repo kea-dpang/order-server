@@ -37,7 +37,7 @@ interface RefundController {
      * @param startDate 환불 요청 시작 날짜
      * @param endDate 환불 요청 종료 날짜
      * @param reason 환불 사유
-     * @param refundId 조회할 환불 번호
+     * @param userId 사용자 식별자
      * @param pageable 페이지네이션 정보
      * @return 조회된 환불 목록
      */
@@ -45,7 +45,7 @@ interface RefundController {
         startDate: LocalDate?,
         endDate: LocalDate?,
         reason: Reason?,
-        refundId: Long?,
+        userId: Long?,
         pageable: Pageable
     ): ResponseEntity<SuccessResponse<Page<RefundDto>>>
 

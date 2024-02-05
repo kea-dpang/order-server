@@ -225,13 +225,13 @@ class OrderServiceImpl(
     override fun getOrderList(
         startDate: LocalDate?,
         endDate: LocalDate?,
-        orderId: Long?,
+        userId: Long?,
         pageable: Pageable
     ): Page<OrderDto> {
-        log.info("주문 목록 조회 시작. 시작 날짜: {}, 종료 날짜: {}, 주문 ID: {}, 페이지 정보: {}", startDate, endDate, orderId, pageable)
+        log.info("주문 목록 조회 시작. 시작 날짜: {}, 종료 날짜: {}, 사용자 ID: {}, 페이지 정보: {}", startDate, endDate, userId, pageable)
 
         val orderList = orderRepository
-            .findOrders(startDate, endDate, orderId, pageable)
+            .findOrders(startDate, endDate, userId, pageable)
             .map { convertOrderEntityToDto(it) }
 
         log.info("주문 목록 조회 완료. 조회된 주문 건수: {}", orderList.totalElements)

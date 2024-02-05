@@ -53,11 +53,11 @@ class RefundControllerImpl(private val refundService: RefundService) : RefundCon
         @Parameter(description = "환불 요청 종료 날짜") @RequestParam(required = false)
         @DateTimeFormat(pattern = "yyyy-MM-dd") endDate: LocalDate?,
         @Parameter(description = "환불 사유") @RequestParam(required = false) reason: Reason?,
-        @Parameter(description = "환불 ID") @RequestParam(required = false) refundId: Long?,
+        @Parameter(description = "사용자 ID") @RequestParam(required = false) userId: Long?,
         pageable: Pageable
     ): ResponseEntity<SuccessResponse<Page<RefundDto>>> {
 
-        val refundList = refundService.getRefundList(startDate, endDate, reason, refundId, pageable)
+        val refundList = refundService.getRefundList(startDate, endDate, reason, userId, pageable)
         return ResponseEntity.ok(SuccessResponse(HttpStatus.OK.value(), "조회가 완료되었습니다.", refundList))
     }
 

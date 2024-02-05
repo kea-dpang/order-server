@@ -28,14 +28,14 @@ interface CancelService {
      *
      * @param startDate 취소 요청 시작 날짜
      * @param endDate 취소 요청 종료 날짜
-     * @param cancelId 조회할 취소 번호
+     * @param userId 사용자 식별자
      * @param pageable 페이지네이션 정보
      * @return 조회된 주문 취소 목록
      */
     fun getCancelList(
         startDate: LocalDate?,
         endDate: LocalDate?,
-        cancelId: Long?,
+        userId: Long?,
         pageable: Pageable
     ): Page<CancelDto>
 

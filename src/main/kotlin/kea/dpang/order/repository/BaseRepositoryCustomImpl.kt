@@ -20,12 +20,14 @@ import java.time.LocalDateTime
  * @param entityPath 쿼리 대상 엔티티의 Q 클래스 인스턴스
  * @param datePath 쿼리에서 사용할 날짜 필드의 Q 클래스 인스턴스
  * @param idPath 쿼리에서 사용할 ID 필드의 Q 클래스 인스턴스
+ * @param userPath 쿼리에서 사용할 사용자 ID 필드의 Q 클래스 인스턴스
  */
 abstract class BaseRepositoryCustomImpl<T>(
     private val jpaQueryFactory: JPAQueryFactory,
     private val entityPath: EntityPath<T>,
     private val datePath: DateTimePath<LocalDateTime>,
-    private val idPath: NumberPath<Long>
+    private val idPath: NumberPath<Long>,
+    private val userPath: NumberPath<Long>
 ) {
     /**
      * 주어진 조건에 따라 동적 쿼리를 생성하고 실행하여 결과를 페이지네이션된 형태로 반환합니다.
@@ -33,7 +35,7 @@ abstract class BaseRepositoryCustomImpl<T>(
      *
      * @param startDate 쿼리 시작 날짜
      * @param endDate 쿼리 종료 날짜
-     * @param id 쿼리 대상 엔티티의 ID
+     * @param userId 사용자 식별자
      * @param pageable 페이지네이션 정보
      * @param builder 추가적인 필터링 조건을 담은 BooleanBuilder
      * @return 쿼리 결과를 담은 Page 객체
@@ -41,14 +43,14 @@ abstract class BaseRepositoryCustomImpl<T>(
     protected fun findEntities(
         startDate: LocalDate?,
         endDate: LocalDate?,
-        id: Long?,
+        userId: Long?,
         pageable: Pageable,
         builder: BooleanBuilder
     ): Page<T> {
         // 날짜와 ID 필드에 대한 검색 조건을 추가한다.
         startDate?.let { builder.and(datePath.goe(it.atStartOfDay())) }
         endDate?.let { builder.and(datePath.before(it.plusDays(1).atStartOfDay())) }
-        id?.let { builder.and(idPath.eq(it)) }
+        userId?.let { builder.and(userPath.eq(it)) }
 
         // 쿼리를 실행하여 결과를 페이지네이션된 형태로 반환한다.
         val entityList = jpaQueryFactory
