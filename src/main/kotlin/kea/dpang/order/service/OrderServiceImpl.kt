@@ -168,37 +168,55 @@ class OrderServiceImpl(
         return order
     }
 
-    override fun updateOrderStatus(orderDetailId: Long, updateOrderStatusRequest: UpdateOrderStatusRequestDto) {
+    override fun updateOrderStatus(orderId: Long, updateOrderStatusRequest: UpdateOrderStatusRequestDto) {
+        log.info("주문 상태 변경 시작. 주문 ID: {}, 변경 요청 정보: {}", orderId, updateOrderStatusRequest)
+
+        // 데이터베이스에서 주문 정보를 조회한다.
+        val order = orderRepository.findById(orderId)
+            .orElseThrow {
+                log.error("주문 상태 변경 실패. 찾을 수 없는 주문 상세 ID: {}", orderId)
+                OrderNotFoundException(orderId)
+            }
+
+        // 주문 상태 변경을 처리한다.
+        order.details.forEach { orderDetail ->
+            log.info("주문 상태 변경 처리 시작. 주문 상세 ID: {}, 변경 요청 정보: {}", orderDetail.id, updateOrderStatusRequest)
+            updateOrderDetailStatus(orderDetail, updateOrderStatusRequest)
+        }
+    }
+
+    override fun updateOrderDetailStatus(orderDetailId: Long, updateOrderStatusRequest: UpdateOrderStatusRequestDto) {
         log.info("주문 상태 변경 시작. 주문 상세 ID: {}, 변경 요청 정보: {}", orderDetailId, updateOrderStatusRequest)
 
         // 데이터베이스에서 주문 정보를 조회한다.
-        val order = orderDetailRepository.findById(orderDetailId)
+        val orderDetail = orderDetailRepository.findById(orderDetailId)
             .orElseThrow {
                 log.error("주문 상태 변경 실패. 찾을 수 없는 주문 상세 ID: {}", orderDetailId)
                 OrderNotFoundException(orderDetailId)
             }
 
+        // 주문 상태 변경을 처리한다.
+        log.info("주문 상태 변경 처리 시작. 주문 상세 ID: {}, 변경 요청 정보: {}", orderDetailId, updateOrderStatusRequest)
+        updateOrderDetailStatus(orderDetail, updateOrderStatusRequest)
+    }
+
+    fun updateOrderDetailStatus(orderDetail: OrderDetail, updateOrderStatusRequest: UpdateOrderStatusRequestDto) {
         // 변경할 주문 상태를 추출한다.
         val targetStatus = updateOrderStatusRequest.status
 
         // 변경할 주문 상태가 현재 주문 상태와 동일한지 확인한다.
-        if (order.status == targetStatus) {
-            log.error(
-                "주문 상태 변경 실패. 이미 요청된 상태입니다. 주문 상세 ID: {}, 현재 상태: {}, 요청 상태: {}",
-                orderDetailId,
-                order.status,
-                targetStatus
-            )
+        if (orderDetail.status == targetStatus) {
+            log.error("주문 상태 변경 실패. 이미 요청된 상태입니다. 주문 상세 ID: {}, 현재 상태: {}, 요청 상태: {}", orderDetail.id, orderDetail.status, targetStatus)
             throw OrderAlreadyInRequestedStatusException()
         }
 
         // 주문 상태 변경이 유효한지 검증한다.
-        validateStatusChange(order.status, targetStatus)
+        validateStatusChange(orderDetail.status, targetStatus)
 
         // 주문 정보의 상태를 변경한다.
-        order.status = targetStatus
+        orderDetail.status = targetStatus
 
-        log.info("주문 상태 변경 완료. 주문 상세 ID: {}, 변경된 상태: {}", orderDetailId, targetStatus)
+        log.info("주문 상태 변경 완료. 주문 상세 ID: {}, 변경된 상태: {}", orderDetail.id, targetStatus)
     }
 
     /**
