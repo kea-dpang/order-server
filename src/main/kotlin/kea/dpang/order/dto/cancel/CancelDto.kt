@@ -8,6 +8,7 @@ import java.time.LocalDate
  *
  * @property cancelId 취소 식별자
  * @property userId 사용자 식별자
+ * @property userName 사용자 이름
  * @property cancelRequestDate 취소 신청일
  * @property orderId 주문 식별자
  * @property orderDate 주문 일자
@@ -18,6 +19,7 @@ import java.time.LocalDate
 data class CancelDto(
     val cancelId: Long,
     val userId: Long,
+    val userName: String,
     val cancelRequestDate: LocalDate,
     val orderId: Long,
     val orderDate: LocalDate,

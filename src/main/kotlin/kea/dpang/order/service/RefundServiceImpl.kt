@@ -12,6 +12,7 @@ import kea.dpang.order.entity.RefundStatus
 import kea.dpang.order.exception.*
 import kea.dpang.order.feign.ItemServiceFeignClient
 import kea.dpang.order.feign.MileageServiceFeignClient
+import kea.dpang.order.feign.UserServiceFeignClient
 import kea.dpang.order.feign.dto.RefundMileageRequestDTO
 import kea.dpang.order.feign.dto.UpdateStockListRequestDto
 import kea.dpang.order.feign.dto.UpdateStockRequestDto
@@ -29,6 +30,7 @@ import java.time.LocalDate
 class RefundServiceImpl(
     private val refundRepository: RefundRepository,
     private val orderDetailRepository: OrderDetailRepository,
+    val userServiceFeignClient: UserServiceFeignClient,
     private val itemServiceFeignClient: ItemServiceFeignClient,
     private val mileageServiceFeignClient: MileageServiceFeignClient
 ) : RefundService {
@@ -147,9 +149,15 @@ class RefundServiceImpl(
     fun convertRefundEntityToDto(refund: Refund): RefundDto {
         log.info("환불 엔티티를 DTO로 변환 시작. 환불 ID: {}", refund.id)
 
-        // 환불 요청한 주문의 상세 정보와 사용자 정보를 얻습니다.
+        // 환불 요청한 주문의 상세 정보를 얻는다.
         val orderDetail = refund.orderDetail
         val order = orderDetail.order
+
+        // 환불 요청한 사용자 정보를 얻는다.
+        val userId = order.userId
+        val user = userServiceFeignClient.getUserInfo(userId).body!!.data
+
+        log.info("환불 요청한 사용자 정보 조회 완료. 사용자 ID: {}", userId)
 
         // ProductInfoDto 생성
         val productInfo = itemServiceFeignClient.getItemInfo(orderDetail.itemId).body!!.data // 상품 정보 가져오기
@@ -168,6 +176,7 @@ class RefundServiceImpl(
             refundId = refund.id!!,
             refundRequestDate = refund.refundRequestDate!!.toLocalDate(),
             userId = order.userId,
+            userName = user.name,
             orderId = order.id!!,
             orderDate = order.date!!.toLocalDate(),
             product = orderedProductInfo,
