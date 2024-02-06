@@ -62,13 +62,13 @@ class RefundControllerImpl(private val refundService: RefundService) : RefundCon
     }
 
     @Operation(summary = "환불 상태 업데이트", description = "환불 상태를 업데이트합니다.")
-    @PutMapping("/{orderDetailId}")
+    @PutMapping("/{refundId}")
     override fun updateRefundStatus(
-        @Parameter(description = "주문 상세 ID") @PathVariable orderDetailId: Long,
+        @Parameter(description = "환불 ID") @PathVariable refundId: Long,
         @Parameter(description = "환불 상태 정보") @RequestBody refundStatusDto: RefundStatusDto
     ): ResponseEntity<BaseResponse> {
 
-        refundService.updateRefundStatus(orderDetailId, refundStatusDto)
+        refundService.updateRefundStatus(refundId, refundStatusDto)
         return ResponseEntity.ok(BaseResponse(HttpStatus.OK.value(), "환불 상태가 업데이트되었습니다."))
     }
 
