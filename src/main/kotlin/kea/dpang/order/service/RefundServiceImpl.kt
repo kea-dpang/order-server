@@ -3,6 +3,7 @@ package kea.dpang.order.service
 import kea.dpang.order.dto.OrderedProductInfo
 import kea.dpang.order.dto.ProductInfoDto
 import kea.dpang.order.dto.refund.*
+import kea.dpang.order.entity.OrderStatus.CANCELLED
 import kea.dpang.order.entity.OrderStatus.DELIVERY_COMPLETED
 import kea.dpang.order.entity.RefundReason
 import kea.dpang.order.entity.Recall
@@ -49,6 +50,9 @@ class RefundServiceImpl(
             log.error("환불 불가능 상태. 주문 상세 ID: {}", orderDetailId)
             throw UnableToRefundException()
         }
+
+        // 주문 상태를 '취소'로 변경한다.
+        orderDetail.status = CANCELLED
 
         // RefundOrderRequestDto에서 환불 요청 정보를 추출하고 환불, 회수 객체를 생성한다.
         val refund = Refund(
