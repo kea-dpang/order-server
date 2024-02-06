@@ -55,7 +55,8 @@ class CancelServiceImpl(
 
         // 주문 취소 정보
         val cancel = Cancel(
-            orderDetail = orderDetail
+            orderDetail = orderDetail,
+            refundAmount = orderDetail.order.productPaymentAmount + orderDetail.order.deliveryFee
         )
 
         // 취소 정보를 데이터베이스에 저장한다.
@@ -81,7 +82,7 @@ class CancelServiceImpl(
         // 주문에 사용된 마일리지를 마일리지 서비스에 요청하여 사용자에게 환불한다.
         val refundMileageInfo = RefundMileageRequestDTO(
             userId = orderDetail.order.userId,
-            amount = orderDetail.order.productPaymentAmount + orderDetail.order.deliveryFee,
+            amount = cancel.refundAmount,
             reason = "주문 취소"
         )
         mileageServiceFeignClient.refundMileage(orderDetail.order.userId, refundMileageInfo)
@@ -136,7 +137,8 @@ class CancelServiceImpl(
             orderId = orderDetail.order.id!!,
             orderDate = orderDetail.order.date!!.toLocalDate(),
             product = orderedProductInfo,
-            expectedRefundAmount = product.price * orderDetail.quantity
+            totalAmount = product.price * orderDetail.quantity,
+            expectedRefundAmount = cancel.refundAmount
         )
 
         log.info("취소 정보 변환 완료. 취소 ID: {}", cancel.id)
