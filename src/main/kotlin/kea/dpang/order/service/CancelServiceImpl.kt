@@ -131,6 +131,7 @@ class CancelServiceImpl(
         // Cancel 엔티티와 OrderedProductInfo를 사용하여 CancelDto를 생성한다.
         val cancelDto = CancelDto(
             cancelId = cancel.id!!,
+            userId = orderDetail.order.userId,
             cancelRequestDate = cancel.requestDate!!.toLocalDate(),
             orderId = orderDetail.order.id!!,
             orderDate = orderDetail.order.date!!.toLocalDate(),
