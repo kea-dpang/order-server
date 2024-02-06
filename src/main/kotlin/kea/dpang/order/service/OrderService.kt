@@ -33,10 +33,12 @@ interface OrderService {
     /**
      * 주문 상세 상태 수정 - 관리자
      *
+     * @param orderId 주문 식별자
      * @param orderDetailId 주문 상세 식별자
      * @param updateOrderStatusRequest 상태 변경 요청 정보
      */
     fun updateOrderDetailStatus(
+        orderId: Long,
         orderDetailId: Long,
         updateOrderStatusRequest: UpdateOrderStatusRequestDto
     )

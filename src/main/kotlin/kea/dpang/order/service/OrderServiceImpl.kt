@@ -15,7 +15,6 @@ import kea.dpang.order.feign.MileageServiceFeignClient
 import kea.dpang.order.feign.dto.ConsumeMileageRequestDto
 import kea.dpang.order.feign.dto.UpdateStockListRequestDto
 import kea.dpang.order.feign.dto.UpdateStockRequestDto
-import kea.dpang.order.repository.OrderDetailRepository
 import kea.dpang.order.repository.OrderRepository
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
@@ -28,7 +27,6 @@ import java.time.LocalDate
 @Transactional
 class OrderServiceImpl(
     private val orderRepository: OrderRepository,
-    private val orderDetailRepository: OrderDetailRepository,
     private val itemServiceFeignClient: ItemServiceFeignClient,
     private val mileageServiceFeignClient: MileageServiceFeignClient
 ) : OrderService {
@@ -185,15 +183,19 @@ class OrderServiceImpl(
         }
     }
 
-    override fun updateOrderDetailStatus(orderDetailId: Long, updateOrderStatusRequest: UpdateOrderStatusRequestDto) {
-        log.info("주문 상태 변경 시작. 주문 상세 ID: {}, 변경 요청 정보: {}", orderDetailId, updateOrderStatusRequest)
+    override fun updateOrderDetailStatus(orderId: Long, orderDetailId: Long, updateOrderStatusRequest: UpdateOrderStatusRequestDto) {
+        log.info("주문 상태 변경 시작. 주문 ID: {}, 주문 상세 ID: {}, 변경 요청 정보: {}", orderId, orderDetailId, updateOrderStatusRequest)
 
         // 데이터베이스에서 주문 정보를 조회한다.
-        val orderDetail = orderDetailRepository.findById(orderDetailId)
+        val order = orderRepository.findById(orderId)
             .orElseThrow {
-                log.error("주문 상태 변경 실패. 찾을 수 없는 주문 상세 ID: {}", orderDetailId)
-                OrderNotFoundException(orderDetailId)
+                log.error("주문 상태 변경 실패. 찾을 수 없는 주문 ID: {}", orderId)
+                OrderNotFoundException(orderId)
             }
+
+        // 주문 상세 정보를 조회한다.
+        val orderDetail = order.details.find { it.id == orderDetailId }
+            ?: throw OrderDetailNotFoundException(orderDetailId)
 
         // 주문 상태 변경을 처리한다.
         log.info("주문 상태 변경 처리 시작. 주문 상세 ID: {}, 변경 요청 정보: {}", orderDetailId, updateOrderStatusRequest)
