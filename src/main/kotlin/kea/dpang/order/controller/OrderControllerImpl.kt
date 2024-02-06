@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
 import kea.dpang.order.base.BaseResponse
 import kea.dpang.order.base.SuccessResponse
+import kea.dpang.order.dto.OrderedProductInfo
 import kea.dpang.order.dto.order.OrderDetailDto
 import kea.dpang.order.dto.order.OrderDto
 import kea.dpang.order.dto.order.OrderRequestDto
@@ -71,17 +72,28 @@ class OrderControllerImpl(private val orderService: OrderService) : OrderControl
     ): ResponseEntity<SuccessResponse<Page<OrderDto>>> {
 
         val orderList = orderService.getOrderList(startDate, endDate, userId, pageable)
-        return ResponseEntity.ok(SuccessResponse(HttpStatus.OK.value(), "조회가 완료되었습니다.", orderList))
+        return ResponseEntity.ok(SuccessResponse(HttpStatus.OK.value(), "주문 정보가 조회 완료되었습니다.", orderList))
     }
 
-    @Operation(summary = "주문 상세 조회", description = "주문의 상세 정보를 조회합니다.")
+    @Operation(summary = "주문 조회", description = "주문 정보를 조회합니다.")
     @GetMapping("/{orderId}")
     override fun getOrder(
         @Parameter(description = "주문 ID") @PathVariable orderId: Long
     ): ResponseEntity<SuccessResponse<OrderDetailDto>> {
 
-        val orderDetail = orderService.getOrder(orderId)
-        return ResponseEntity.ok(SuccessResponse(HttpStatus.OK.value(), "조회가 완료되었습니다.", orderDetail))
+        val orderDetail = orderService.getOrderInfo(orderId)
+        return ResponseEntity.ok(SuccessResponse(HttpStatus.OK.value(), "주문 정보가 조회 완료되었습니다.", orderDetail))
+    }
+
+    @Operation(summary = "주문 상세 조회", description = "주문 상세 정보를 조회합니다.")
+    @GetMapping("/{orderId}/detail/{orderDetailId}")
+    override fun getOrderDetail(
+        @Parameter(description = "주문 ID") @PathVariable orderId: Long,
+        @Parameter(description = "주문 상세 ID") @PathVariable orderDetailId: Long
+    ): ResponseEntity<SuccessResponse<OrderedProductInfo>> {
+
+        val orderDetail = orderService.getOrderDetailInfo(orderId, orderDetailId)
+        return ResponseEntity.ok(SuccessResponse(HttpStatus.OK.value(), "주문 상세 정보가 조회 완료되었습니다.", orderDetail))
     }
 
 }
