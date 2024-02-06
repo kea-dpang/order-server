@@ -39,15 +39,24 @@ class OrderServiceImpl(
         // OrderRequestDto에서 주문 정보를 추출한다.
         val productInfoList = orderRequest.orderIteminfo
 
-        // 주문 상품의 재고가 충분한지 확인하고, 총 비용을 계산한다.
+        // 상품 서비스로부터 상품 정보를 한 번에 조회한다.
+        val productIds = productInfoList.map { it.itemId }
+        val products = itemServiceFeignClient.getItemList(productIds).body!!.data
+
+        log.info("상품 정보 조회 완료. 상품 정보: {}", products)
+
         var totalCost = 0
         for (productInfo in productInfoList) {
             val productId = productInfo.itemId
             val quantity = productInfo.quantity
 
-            // 상품 정보를 받아온다.
-            val product = itemServiceFeignClient.getItemInfo(productId).body!!.data
-            log.info("상품 정보 조회 완료. 상품 ID: {}, 상품 정보: {}", productId, product)
+            // 상품 정보를 찾는다.
+            val product = products.find { it.id == productId }
+
+            if (product == null) {
+                log.error("상품 정보 없음. 상품 ID: {}", productId)
+                throw ProductNotFoundException(productId)
+            }
 
             if (product.quantity < quantity) {
                 log.error("재고 부족. 상품 ID: {}, 요청량: {}, 재고량: {}", productId, quantity, product.quantity)
@@ -56,6 +65,8 @@ class OrderServiceImpl(
 
             totalCost += product.price * quantity
         }
+
+        log.info("총 비용: {}", totalCost)
 
         // 사용자의 마일리지가 총 비용보다 많은지 확인한다.
         val response = mileageServiceFeignClient.getUserMileage(userId, userId)
@@ -145,11 +156,20 @@ class OrderServiceImpl(
         order.updateRecipient(orderRecipient)
         log.info("수령인 정보 설정 완료. 사용자 ID: {}", userId)
 
+        // 상품 서비스로부터 상품 정보를 한 번에 조회한다.
+        val itemIds = orderRequestDto.orderIteminfo.map { it.itemId }
+        val itemList = itemServiceFeignClient.getItemList(itemIds).body!!.data
+
         // 주문 상세 정보를 생성하고 주문 객체에 설정한다.
         order.details = orderRequestDto.orderIteminfo.map { orderIteminfo ->
 
-            // 상품 서비스로부터 상품 정보를 조회한다.
-            val itemInfo = itemServiceFeignClient.getItemInfo(orderIteminfo.itemId).body!!.data
+            // 상품 정보를 찾는다.
+            val itemInfo = itemList.find { it.id == orderIteminfo.itemId }
+
+            if (itemInfo == null) {
+                log.error("상품 정보 없음. 상품 ID: {}", orderIteminfo.itemId)
+                throw ProductNotFoundException(orderIteminfo.itemId)
+            }
 
             // 주문 상세 정보를 생성한다.
             OrderDetail(
@@ -161,6 +181,7 @@ class OrderServiceImpl(
             )
 
         }.toMutableList()
+
         log.info("주문 상세 정보 설정 완료. 사용자 ID: {}", userId)
 
         log.info("주문 생성 완료. 사용자 ID: {}", userId)
@@ -272,9 +293,20 @@ class OrderServiceImpl(
     private fun convertOrderEntityToDto(order: Order): OrderDto {
         log.info("Order 엔티티를 OrderDto로 변환 시작. 변환할 Order ID: {}", order.id)
 
-        // 상품 서비스로부터 상품 정보 조회 및 DTO 설정
+        // 상품 서비스로부터 상품 정보를 한 번에 조회한다.
+        val itemIds = order.details.map { it.itemId }
+        val itemList = itemServiceFeignClient.getItemList(itemIds).body!!.data
+
+        // 상품 정보 조회 및 DTO 설정
         val productList = order.details.map { orderDetail ->
-            val productInfo = itemServiceFeignClient.getItemInfo(orderDetail.itemId).body!!.data // 상품 정보 가져오기
+
+            // 상품 정보를 찾는다.
+            val productInfo = itemList.find { it.id == orderDetail.itemId }
+
+            if (productInfo == null) {
+                log.error("상품 정보 없음. 상품 ID: {}", orderDetail.itemId)
+                throw ProductNotFoundException(orderDetail.itemId)
+            }
 
             OrderedProductInfo(
                 orderDetailId = orderDetail.id!!,
