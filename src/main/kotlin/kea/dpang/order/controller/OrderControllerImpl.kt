@@ -55,7 +55,7 @@ class OrderControllerImpl(private val orderService: OrderService) : OrderControl
         @Parameter(description = "변경할 주문 상태 정보") @RequestBody updateOrderStatusRequest: UpdateOrderStatusRequestDto
     ): ResponseEntity<BaseResponse> {
 
-        orderService.updateOrderDetailStatus(orderDetailId, updateOrderStatusRequest)
+        orderService.updateOrderDetailStatus(orderId, orderDetailId, updateOrderStatusRequest)
         return ResponseEntity.ok(BaseResponse(HttpStatus.OK.value(), "주문 항목의 상태가 수정되었습니다."))
     }
 

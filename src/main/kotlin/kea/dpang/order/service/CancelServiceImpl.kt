@@ -81,7 +81,7 @@ class CancelServiceImpl(
         // 주문에 사용된 마일리지를 마일리지 서비스에 요청하여 사용자에게 환불한다.
         val refundMileageInfo = RefundMileageRequestDTO(
             userId = orderDetail.order.userId,
-            amount = orderDetail.order.productPaymentAmount,
+            amount = orderDetail.order.productPaymentAmount + orderDetail.order.deliveryFee,
             reason = "주문 취소"
         )
         mileageServiceFeignClient.refundMileage(orderDetail.order.userId, refundMileageInfo)
