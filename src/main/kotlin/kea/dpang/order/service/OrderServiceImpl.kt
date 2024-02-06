@@ -293,7 +293,7 @@ class OrderServiceImpl(
     }
 
     @Transactional(readOnly = true)
-    override fun getOrder(orderId: Long): OrderDetailDto {
+    override fun getOrderInfo(orderId: Long): OrderDetailDto {
         log.info("주문 상세 정보 조회 시작. 주문 ID: {}", orderId)
 
         // 데이터베이스에서 주문 정보를 조회

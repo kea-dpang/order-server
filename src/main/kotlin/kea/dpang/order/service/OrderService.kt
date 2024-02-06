@@ -57,11 +57,11 @@ interface OrderService {
     ): Page<OrderDto>
 
     /**
-     * 주문 및 배송 상세 조회
+     * 주문 조회
      *
      * @param orderId 조회할 주문의 식별자
      * @return 조회된 주문 및 배송 상세 정보
      */
-    fun getOrder(orderId: Long): OrderDetailDto
+    fun getOrderInfo(orderId: Long): OrderDetailDto
 
 }

@@ -80,7 +80,7 @@ class OrderControllerImpl(private val orderService: OrderService) : OrderControl
         @Parameter(description = "주문 ID") @PathVariable orderId: Long
     ): ResponseEntity<SuccessResponse<OrderDetailDto>> {
 
-        val orderDetail = orderService.getOrder(orderId)
+        val orderDetail = orderService.getOrderInfo(orderId)
         return ResponseEntity.ok(SuccessResponse(HttpStatus.OK.value(), "조회가 완료되었습니다.", orderDetail))
     }
 
