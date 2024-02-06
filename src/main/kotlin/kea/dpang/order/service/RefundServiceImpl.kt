@@ -168,7 +168,8 @@ class RefundServiceImpl(
             orderDate = order.date!!.toLocalDate(),
             product = orderedProductInfo,
             expectedRefundAmount = refund.refundAmount,
-            refundStatus = refund.refundStatus
+            refundStatus = refund.refundStatus,
+            refundReason = refund.refundReason,
         )
 
         log.info("환불 DTO 변환 완료. 환불 ID: {}", refund.id)
