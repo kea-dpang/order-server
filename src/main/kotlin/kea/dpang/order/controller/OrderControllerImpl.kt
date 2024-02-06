@@ -74,7 +74,7 @@ class OrderControllerImpl(private val orderService: OrderService) : OrderControl
         return ResponseEntity.ok(SuccessResponse(HttpStatus.OK.value(), "조회가 완료되었습니다.", orderList))
     }
 
-    @Operation(summary = "주문 상세 조회", description = "주문의 상세 정보를 조회합니다.")
+    @Operation(summary = "주문 조회", description = "주문 정보를 조회합니다.")
     @GetMapping("/{orderId}")
     override fun getOrder(
         @Parameter(description = "주문 ID") @PathVariable orderId: Long
