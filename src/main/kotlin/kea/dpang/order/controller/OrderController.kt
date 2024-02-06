@@ -39,6 +39,20 @@ interface OrderController {
     ): ResponseEntity<BaseResponse>
 
     /**
+     * 주문 상세 상태 수정 - 관리자
+     *
+     * @param orderId 주문 식별자
+     * @param orderDetailId 주문 상세 식별자
+     * @param updateOrderStatusRequest 상태 변경 요청 정보
+     * @return 변경 결과
+     */
+    fun updateOrderItemStatus(
+        orderId: Long,
+        orderDetailId: Long,
+        updateOrderStatusRequest: UpdateOrderStatusRequestDto
+    ): ResponseEntity<BaseResponse>
+
+    /**
      * 주문 및 배송 조회 - List
      *
      * @param startDate 조회 시작 날짜

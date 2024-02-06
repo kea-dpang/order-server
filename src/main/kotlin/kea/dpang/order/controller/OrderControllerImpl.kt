@@ -35,15 +35,27 @@ class OrderControllerImpl(private val orderService: OrderService) : OrderControl
         return ResponseEntity.ok(SuccessResponse(HttpStatus.OK.value(), "주문이 완료되었습니다.", orderResult))
     }
 
-    @Operation(summary = "주문 상태 수정", description = "주문의 상태를 수정합니다.")
+    @Operation(summary = "주문 상태 수정", description = "주문 전체의 상태를 수정합니다.")
     @PutMapping("/{orderId}")
     override fun updateOrderStatus(
         @Parameter(description = "주문 ID") @PathVariable orderId: Long,
-        @Parameter(description = "주문 상태 정보") @RequestBody updateOrderStatusRequest: UpdateOrderStatusRequestDto
+        @Parameter(description = "변경할 주문 상태 정보") @RequestBody updateOrderStatusRequest: UpdateOrderStatusRequestDto
     ): ResponseEntity<BaseResponse> {
 
         orderService.updateOrderStatus(orderId, updateOrderStatusRequest)
         return ResponseEntity.ok(BaseResponse(HttpStatus.OK.value(), "주문 상태가 수정되었습니다."))
+    }
+
+    @Operation(summary = "주문 상품 상태 수정", description = "주문 내의 특정 상품의 상태를 수정합니다.")
+    @PutMapping("/{orderId}/detail/{orderDetailId}")
+    override fun updateOrderItemStatus(
+        @Parameter(description = "주문 ID") @PathVariable orderId: Long,
+        @Parameter(description = "주문 상세 ID") @PathVariable orderDetailId: Long,
+        @Parameter(description = "변경할 주문 상태 정보") @RequestBody updateOrderStatusRequest: UpdateOrderStatusRequestDto
+    ): ResponseEntity<BaseResponse> {
+
+        orderService.updateOrderDetailStatus(orderDetailId, updateOrderStatusRequest)
+        return ResponseEntity.ok(BaseResponse(HttpStatus.OK.value(), "주문 항목의 상태가 수정되었습니다."))
     }
 
     @Operation(summary = "주문 목록 조회", description = "조건에 맞는 주문 목록을 조회합니다.")
