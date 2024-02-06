@@ -316,4 +316,34 @@ class OrderServiceImpl(
         return orderDetailDto
     }
 
+    @Transactional(readOnly = true)
+    override fun getOrderDetailInfo(orderId: Long, orderDetailId: Long): OrderedProductInfo {
+        log.info("주문 상세 정보 조회 시작. 주문 ID: {}, 주문 상세 ID: {}", orderId, orderDetailId)
+
+        // 데이터베이스에서 주문 정보를 조회
+        val order = orderRepository.findById(orderId)
+            .orElseThrow {
+                log.error("주문 상세 정보 조회 실패. 찾을 수 없는 주문 ID: {}", orderId)
+                OrderNotFoundException(orderId)
+            }
+
+        // 주문 상세 정보를 조회
+        val orderDetail = order.details.find { it.id == orderDetailId }
+            ?: throw OrderDetailNotFoundException(orderDetailId)
+
+        // 상품 서비스로부터 상품 정보 조회
+        val productInfo = itemServiceFeignClient.getItemInfo(orderDetail.itemId).body!!.data
+
+        // OrderedProductInfo로 변환
+        val orderedProductInfo = OrderedProductInfo(
+            orderDetailId = orderDetail.id!!,
+            orderStatus = orderDetail.status,
+            productInfoDto = ProductInfoDto.from(productInfo),
+            productQuantity = orderDetail.quantity
+        )
+
+        log.info("주문 상세 정보 조회 완료. 주문 ID: {}, 주문 상세 ID: {}", orderId, orderDetailId)
+
+        return orderedProductInfo
+    }
 }

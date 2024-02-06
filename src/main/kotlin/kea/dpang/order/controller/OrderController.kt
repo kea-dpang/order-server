@@ -2,6 +2,7 @@ package kea.dpang.order.controller
 
 import kea.dpang.order.base.BaseResponse
 import kea.dpang.order.base.SuccessResponse
+import kea.dpang.order.dto.OrderedProductInfo
 import kea.dpang.order.dto.order.OrderDetailDto
 import kea.dpang.order.dto.order.OrderDto
 import kea.dpang.order.dto.order.OrderRequestDto
@@ -71,11 +72,19 @@ interface OrderController {
     ): ResponseEntity<SuccessResponse<Page<OrderDto>>>
 
     /**
-     * 주문 및 배송 상세 조회
+     * 주문 조회
      *
      * @param orderId 조회할 주문의 식별자
      * @return 조회된 주문 및 배송 상세 정보
      */
     fun getOrder(orderId: Long): ResponseEntity<SuccessResponse<OrderDetailDto>>
 
+    /**
+     * 주문 상세 조회
+     *
+     * @param orderId 조회할 주문의 식별자
+     * @param orderDetailId 조회할 주문 상세의 식별자
+     * @return 조회된 주문 상세 정보
+     */
+    fun getOrderDetail(orderId: Long, orderDetailId: Long): ResponseEntity<SuccessResponse<OrderedProductInfo>>
 }
