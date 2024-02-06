@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonCreator
 /**
  * 환불 사유를 나타내는 Enum 클래스
  */
-enum class Reason {
+enum class RefundReason {
 
     /**
      * 사이즈가 맞지 않음
@@ -40,8 +40,8 @@ enum class Reason {
     companion object {
         @JsonCreator
         @JvmStatic
-        fun fromString(value: String): Reason {
-            return Reason.valueOf(value.uppercase())
+        fun fromString(value: String): RefundReason {
+            return RefundReason.valueOf(value.uppercase())
         }
     }
 }

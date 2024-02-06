@@ -9,7 +9,7 @@ import kea.dpang.order.dto.refund.RefundDetailDto
 import kea.dpang.order.dto.refund.RefundDto
 import kea.dpang.order.dto.refund.RefundOrderRequestDto
 import kea.dpang.order.dto.refund.RefundStatusDto
-import kea.dpang.order.entity.Reason
+import kea.dpang.order.entity.RefundReason
 import kea.dpang.order.service.RefundService
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -52,12 +52,12 @@ class RefundControllerImpl(private val refundService: RefundService) : RefundCon
         @DateTimeFormat(pattern = "yyyy-MM-dd") startDate: LocalDate?,
         @Parameter(description = "환불 요청 종료 날짜") @RequestParam(required = false)
         @DateTimeFormat(pattern = "yyyy-MM-dd") endDate: LocalDate?,
-        @Parameter(description = "환불 사유") @RequestParam(required = false) reason: Reason?,
+        @Parameter(description = "환불 사유") @RequestParam(required = false) refundReason: RefundReason?,
         @Parameter(description = "사용자 ID") @RequestParam(required = false) userId: Long?,
         pageable: Pageable
     ): ResponseEntity<SuccessResponse<Page<RefundDto>>> {
 
-        val refundList = refundService.getRefundList(startDate, endDate, reason, userId, pageable)
+        val refundList = refundService.getRefundList(startDate, endDate, refundReason, userId, pageable)
         return ResponseEntity.ok(SuccessResponse(HttpStatus.OK.value(), "조회가 완료되었습니다.", refundList))
     }
 

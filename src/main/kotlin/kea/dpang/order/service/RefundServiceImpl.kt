@@ -4,7 +4,7 @@ import kea.dpang.order.dto.OrderedProductInfo
 import kea.dpang.order.dto.ProductInfoDto
 import kea.dpang.order.dto.refund.*
 import kea.dpang.order.entity.OrderStatus.DELIVERY_COMPLETED
-import kea.dpang.order.entity.Reason
+import kea.dpang.order.entity.RefundReason
 import kea.dpang.order.entity.Recall
 import kea.dpang.order.entity.Refund
 import kea.dpang.order.entity.RefundStatus
@@ -182,14 +182,14 @@ class RefundServiceImpl(
     override fun getRefundList(
         startDate: LocalDate?,
         endDate: LocalDate?,
-        reason: Reason?,
+        refundReason: RefundReason?,
         userId: Long?,
         pageable: Pageable
     ): Page<RefundDto> {
-        log.info("환불 목록 검색 시작. 시작 날짜: {}, 종료 날짜: {}, 환불 사유: {}, 사용자 ID: {}, 페이지 정보: {}", startDate, endDate, reason, userId, pageable)
+        log.info("환불 목록 검색 시작. 시작 날짜: {}, 종료 날짜: {}, 환불 사유: {}, 사용자 ID: {}, 페이지 정보: {}", startDate, endDate, refundReason, userId, pageable)
 
         return refundRepository
-            .findRefunds(startDate, endDate, reason, userId, pageable)
+            .findRefunds(startDate, endDate, refundReason, userId, pageable)
             .map { convertRefundEntityToDto(it) }
     }
 

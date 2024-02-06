@@ -4,7 +4,7 @@ import kea.dpang.order.dto.refund.RefundDetailDto
 import kea.dpang.order.dto.refund.RefundDto
 import kea.dpang.order.dto.refund.RefundOrderRequestDto
 import kea.dpang.order.dto.refund.RefundStatusDto
-import kea.dpang.order.entity.Reason
+import kea.dpang.order.entity.RefundReason
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import java.time.LocalDate
@@ -33,7 +33,7 @@ interface RefundService {
      *
      * @param startDate 환불 요청 시작 날짜
      * @param endDate 환불 요청 종료 날짜
-     * @param reason 환불 사유
+     * @param refundReason 환불 사유
      * @param userId 사용자 식별자
      * @param pageable 페이지네이션 정보
      * @return 조회된 환불 목록
@@ -41,7 +41,7 @@ interface RefundService {
     fun getRefundList(
         startDate: LocalDate?,
         endDate: LocalDate?,
-        reason: Reason?,
+        refundReason: RefundReason?,
         userId: Long?,
         pageable: Pageable
     ): Page<RefundDto>

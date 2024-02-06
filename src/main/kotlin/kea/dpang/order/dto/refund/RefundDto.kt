@@ -1,7 +1,7 @@
 package kea.dpang.order.dto.refund
 
 import kea.dpang.order.dto.OrderedProductInfo
-import kea.dpang.order.entity.Reason
+import kea.dpang.order.entity.RefundReason
 import kea.dpang.order.entity.RefundStatus
 import java.time.LocalDate
 
@@ -27,5 +27,5 @@ data class RefundDto(
     val product: OrderedProductInfo,
     val expectedRefundAmount: Int,
     val refundStatus: RefundStatus,
-    val refundReason: Reason
+    val refundReason: RefundReason
 )
