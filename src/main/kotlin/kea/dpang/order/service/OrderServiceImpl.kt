@@ -289,7 +289,8 @@ class OrderServiceImpl(
         val orderDetailDto = OrderDetailDto(
             order = convertOrderEntityToDto(order),
             deliveryInfo = DeliveryInfo.from(order.recipient!!),
-            paymentInfo = PaymentInfo.from(order)
+            paymentInfo = PaymentInfo.from(order),
+            deliveryRequest = order.deliveryRequest
         )
 
         log.info("주문 상세 정보 조회 완료. 주문 ID: {}", orderId)
