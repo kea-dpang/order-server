@@ -8,11 +8,13 @@ import com.fasterxml.jackson.annotation.JsonUnwrapped
  * @property order 주문 정보
  * @property deliveryInfo 배송지 정보
  * @property paymentInfo 결제 정보
+ * @property deliveryRequest 배송 요청 사항
  */
 data class OrderDetailDto(
 
     @JsonUnwrapped
     val order: OrderDto,
     val deliveryInfo: DeliveryInfo,
-    val paymentInfo: PaymentInfo
+    val paymentInfo: PaymentInfo,
+    val deliveryRequest: String
 )
