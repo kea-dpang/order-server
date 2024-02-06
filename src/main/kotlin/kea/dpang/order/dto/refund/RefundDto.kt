@@ -11,6 +11,7 @@ import java.time.LocalDate
  * @property refundId 환불 식별자
  * @property refundRequestDate 환불 신청일
  * @property userId 사용자 식별자
+ * @property userName 사용자 이름
  * @property orderId 주문 식별자
  * @property orderDate 주문 일자
  * @property product 상품 정보
@@ -22,6 +23,7 @@ data class RefundDto(
     val refundId: Long,
     val refundRequestDate: LocalDate,
     val userId: Long,
+    val userName: String,
     val orderId: Long,
     val orderDate: LocalDate,
     val product: OrderedProductInfo,

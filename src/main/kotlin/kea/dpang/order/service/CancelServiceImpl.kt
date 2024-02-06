@@ -11,6 +11,7 @@ import kea.dpang.order.exception.OrderDetailNotFoundException
 import kea.dpang.order.exception.UnableToCancelException
 import kea.dpang.order.feign.ItemServiceFeignClient
 import kea.dpang.order.feign.MileageServiceFeignClient
+import kea.dpang.order.feign.UserServiceFeignClient
 import kea.dpang.order.feign.dto.RefundMileageRequestDTO
 import kea.dpang.order.feign.dto.UpdateStockListRequestDto
 import kea.dpang.order.feign.dto.UpdateStockRequestDto
@@ -28,6 +29,7 @@ import java.time.LocalDate
 class CancelServiceImpl(
     private val orderDetailRepository: OrderDetailRepository,
     private val cancelRepository: CancelRepository,
+    private val userServiceFeignClient: UserServiceFeignClient,
     private val itemServiceFeignClient: ItemServiceFeignClient,
     private val mileageServiceFeignClient: MileageServiceFeignClient
 ) : CancelService {
@@ -121,6 +123,14 @@ class CancelServiceImpl(
         val orderDetail = cancel.orderDetail
         val product = itemServiceFeignClient.getItemInfo(orderDetail.itemId).body!!.data
 
+        log.info("상품 정보 조회 완료. 상품 ID: {}", orderDetail.itemId)
+
+        // 사용자 정보를 조회한다.
+        val userId = orderDetail.order.userId
+        val user = userServiceFeignClient.getUserInfo(userId).body!!.data
+
+        log.info("사용자 정보 조회 완료. 사용자 ID: {}", userId)
+
         // 상품 정보, 주문 상세 정보, 취소 정보를 바탕으로 OrderedProductInfo를 생성한다.
         val orderedProductInfo = OrderedProductInfo(
             orderDetailId = orderDetail.id!!,
@@ -133,6 +143,7 @@ class CancelServiceImpl(
         val cancelDto = CancelDto(
             cancelId = cancel.id!!,
             userId = orderDetail.order.userId,
+            userName = user.name,
             cancelRequestDate = cancel.requestDate!!.toLocalDate(),
             orderId = orderDetail.order.id!!,
             orderDate = orderDetail.order.date!!.toLocalDate(),
