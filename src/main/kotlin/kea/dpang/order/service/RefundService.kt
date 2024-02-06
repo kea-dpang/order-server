@@ -49,9 +49,9 @@ interface RefundService {
     /**
      * 환불 상태 업데이트 - 관리자
      *
-     * @param orderDetailId 주문 상세 ID
+     * @param refundId 환불 식별자
      * @param refundStatusDto 환불 상태 정보
      */
-    fun updateRefundStatus(orderDetailId: Long, refundStatusDto: RefundStatusDto)
+    fun updateRefundStatus(refundId: Long, refundStatusDto: RefundStatusDto)
 
 }

@@ -206,26 +206,23 @@ class RefundServiceImpl(
             .map { convertRefundEntityToDto(it) }
     }
 
-    override fun updateRefundStatus(orderDetailId: Long, refundStatusDto: RefundStatusDto) {
-        log.info("환불 상태 업데이트 시작. 주문 상세 ID: {}, 새로운 환불 상태: {}", orderDetailId, refundStatusDto.status)
+    override fun updateRefundStatus(refundId: Long, refundStatusDto: RefundStatusDto) {
+        log.info("환불 상태 업데이트 시작. 환불 ID: {}, 새로운 환불 상태: {}", refundId, refundStatusDto.status)
 
-        // orderDetailId를 사용하여 데이터베이스에서 주문 상세 정보를 조회한다.
-        val orderDetail = orderDetailRepository.findById(orderDetailId)
+        val refund = refundRepository.findById(refundId)
             .orElseThrow {
-                log.error("찾을 수 없는 주문 상세 정보. 주문 상세 ID: {}", orderDetailId)
-                OrderDetailNotFoundException(orderDetailId)
+                log.error("환불 정보를 찾을 수 없음. 환불 ID: {}", refundId)
+                RefundNotFoundException(refundId)
             }
 
-        // 주문 상세 정보에서 환불 상세 정보를 조회한다.
-        val refund = orderDetail.refund
-            ?: throw RefundNotFoundException(orderDetailId)
+        log.info("환불 정보 조회 완료. 환불 ID: {}", refundId)
 
         // RefundStatusDto에서 변경할 환불 상태를 추출한다.
         val newStatus = refundStatusDto.status
 
         // 변경할 환불 상태가 현재 환불 상태와 동일한지 확인한다.
         if (refund.refundStatus == newStatus) {
-            log.error("이미 변경된 환불 상태. 주문 상세 ID: {}, 변경할 환불 상태: {}", orderDetailId, newStatus)
+            log.error("이미 요청된 환불 상태. 환불 ID: {}, 현재 상태: {}, 변경할 상태: {}", refundId, refund.refundStatus, newStatus)
             throw RefundAlreadyInRequestedStatusException()
         }
 
@@ -237,7 +234,10 @@ class RefundServiceImpl(
 
         // 변경할 환불 상태가 '반품 완료'인 경우, 주문에 사용된 마일리지를 사용자에게 환불하고, 환불된 상품의 재고를 증가시킨다.
         if (newStatus == RefundStatus.REFUND_COMPLETE) {
-            log.info("환불 완료 처리 시작. 주문 상세 ID: {}", orderDetailId)
+            log.info("환불 완료 처리 시작. 주문 상세 ID: {}", refund.orderDetail.id)
+
+            // 반품된 주문 상세 정보
+            val orderDetail = refund.orderDetail
 
             // 주문에 사용된 마일리지를 마일리지 서비스에 요청하여 사용자에게 환불한다.
             val refundMileageInfo = RefundMileageRequestDTO(
@@ -245,6 +245,7 @@ class RefundServiceImpl(
                 amount = orderDetail.purchasePrice,
                 reason = "주문 취소"
             )
+
             mileageServiceFeignClient.refundMileage(orderDetail.order.userId, refundMileageInfo)
             log.info("마일리지 환불 요청 완료. 사용자 ID: {}, 환불 금액: {}", orderDetail.order.userId, orderDetail.purchasePrice)
 
@@ -259,10 +260,11 @@ class RefundServiceImpl(
                     )
                 )
             )
-            log.info("재고 증가 요청 완료. 상품 ID: {}, 증가량: {}", refund.orderDetail.itemId, refund.orderDetail.quantity)
+
+            log.info("재고 증가 요청 완료. 상품 ID: {}, 증가량: {}", orderDetail.itemId, orderDetail.quantity)
         }
 
-        log.info("환불 상태 업데이트 완료. 주문 상세 ID: {}, 새로운 환불 상태: {}", orderDetailId, newStatus)
+        log.info("환불 상태 업데이트 완료. 주문 상세 ID: {}, 새로운 환불 상태: {}", refund.orderDetail.id, newStatus)
     }
 
     /**
