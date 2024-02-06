@@ -29,5 +29,8 @@ data class Cancel(
     var requestDate: LocalDateTime? = null, // 취소 요청 날짜
 
     @Column(name = "cancel_complete_date")
-    var completeDate: LocalDateTime? = null // 취소 완료 날짜
+    var completeDate: LocalDateTime? = null, // 취소 완료 날짜
+
+    @Column(name = "refund_amount")
+    var refundAmount: Int = 0, // 환불 예정액
 )
