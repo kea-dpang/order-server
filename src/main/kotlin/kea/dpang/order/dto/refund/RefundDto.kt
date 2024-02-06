@@ -1,6 +1,7 @@
 package kea.dpang.order.dto.refund
 
 import kea.dpang.order.dto.OrderedProductInfo
+import kea.dpang.order.entity.RefundReason
 import kea.dpang.order.entity.RefundStatus
 import java.time.LocalDate
 
@@ -15,6 +16,7 @@ import java.time.LocalDate
  * @property product 상품 정보
  * @property expectedRefundAmount 환불 예정액
  * @property refundStatus 상태
+ * @property refundReason 환불 사유
  */
 data class RefundDto(
     val refundId: Long,
@@ -24,5 +26,6 @@ data class RefundDto(
     val orderDate: LocalDate,
     val product: OrderedProductInfo,
     val expectedRefundAmount: Int,
-    val refundStatus: RefundStatus
+    val refundStatus: RefundStatus,
+    val refundReason: RefundReason
 )

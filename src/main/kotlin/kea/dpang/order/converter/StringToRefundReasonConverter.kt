@@ -2,15 +2,15 @@ package kea.dpang.order.converter
 
 import org.springframework.core.convert.converter.Converter
 import org.springframework.stereotype.Component
-import kea.dpang.order.entity.Reason
+import kea.dpang.order.entity.RefundReason
 import kea.dpang.order.exception.InvalidReasonException
 
 @Component
-class StringToReasonConverter : Converter<String, Reason> {
+class StringToRefundReasonConverter : Converter<String, RefundReason> {
 
-    override fun convert(source: String): Reason {
+    override fun convert(source: String): RefundReason {
         return try {
-            Reason.valueOf(source.uppercase())
+            RefundReason.valueOf(source.uppercase())
         } catch (e: IllegalArgumentException) {
             throw InvalidReasonException(source)
         }

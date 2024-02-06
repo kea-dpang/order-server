@@ -32,7 +32,7 @@ data class Refund(
 
     @Column(name = "refund_reason")
     @Enumerated(EnumType.STRING)
-    var refundReason: Reason, // 환불 사유
+    var refundReason: RefundReason, // 환불 사유
 
     @Column(name = "note")
     var note: String?, // 비고
