@@ -64,7 +64,7 @@ class RefundServiceImpl(
             refund = null, // 임의로 refund를 null로 설정
             retrieverName = orderDetail.order.recipient!!.name,
             retrieverPhoneNumber = orderDetail.order.recipient!!.phoneNumber,
-            retrieverAddress = orderDetail.order.recipient!!.address,
+            retrieverAddress = "(${orderDetail.order.recipient!!.zipCode}) ${orderDetail.order.recipient!!.address} ${orderDetail.order.recipient!!.detailAddress}",
             retrievalMessage = refundOrderRequest.retrievalMessage
         )
 
