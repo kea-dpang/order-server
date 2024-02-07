@@ -159,7 +159,7 @@ class RefundServiceImpl(
 
         // 상품 정보를 DTO로 변환한다.
         val productInfoDto = ProductInfoDto.from(productInfo)
-        return createRefundDto(refund, orderDetail, order, user, productInfoDto)
+        return createRefundDto(refund, user, productInfoDto)
     }
 
     /**
@@ -170,11 +170,12 @@ class RefundServiceImpl(
      */
     fun createRefundDto(
         refund: Refund,
-        orderDetail: OrderDetail,
-        order: Order,
         user: UserDto,
         productInfoDto: ProductInfoDto
     ): RefundDto {
+        val orderDetail = refund.orderDetail
+        val order = orderDetail.order
+
         val orderedProductInfo = OrderedProductInfo(
             orderDetailId = orderDetail.id!!,
             orderStatus = orderDetail.status,
@@ -195,7 +196,6 @@ class RefundServiceImpl(
             refundReason = refund.refundReason,
         )
     }
-
 
     @Transactional(readOnly = true)
     override fun getRefundList(
@@ -253,7 +253,7 @@ class RefundServiceImpl(
             ?: throw ItemNotFoundException(orderDetail.itemId)
         val productInfoDto = ProductInfoDto.from(productInfo)
 
-        return createRefundDto(refund, orderDetail, order, user, productInfoDto)
+        return createRefundDto(refund, user, productInfoDto)
     }
 
     override fun updateRefundStatus(refundId: Long, refundStatusDto: RefundStatusDto) {
