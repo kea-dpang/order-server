@@ -12,9 +12,7 @@ import kea.dpang.order.exception.UnableToCancelException
 import kea.dpang.order.feign.ItemServiceFeignClient
 import kea.dpang.order.feign.MileageServiceFeignClient
 import kea.dpang.order.feign.UserServiceFeignClient
-import kea.dpang.order.feign.dto.RefundMileageRequestDTO
-import kea.dpang.order.feign.dto.UpdateStockListRequestDto
-import kea.dpang.order.feign.dto.UpdateStockRequestDto
+import kea.dpang.order.feign.dto.*
 import kea.dpang.order.repository.CancelRepository
 import kea.dpang.order.repository.OrderDetailRepository
 import org.slf4j.LoggerFactory
@@ -88,6 +86,7 @@ class CancelServiceImpl(
             reason = "주문 취소"
         )
         mileageServiceFeignClient.refundMileage(orderDetail.order.userId, refundMileageInfo)
+
         log.info("마일리지 환불 요청 완료. 사용자 ID: {}, 환불 금액: {}", orderDetail.order.userId, orderDetail.order.productPaymentAmount)
 
         log.info("주문 취소 완료. 주문 상세 ID: {}", orderDetailId)
@@ -166,12 +165,56 @@ class CancelServiceImpl(
     ): Page<CancelDto> {
         log.info("취소 목록 조회 시작. 시작 날짜: {}, 종료 날짜: {}, 사용자 ID: {}, 페이지 정보: {}", startDate, endDate, userId, pageable)
 
-        val cancelList = cancelRepository
+        val cancels = cancelRepository
             .findCancels(startDate, endDate, userId, pageable)
-            .map { convertCancelEntityToDto(it) }
 
-        log.info("취소 목록 조회 완료. 조회된 취소 건수: {}", cancelList.totalElements)
+        log.info("취소 목록 조회 완료. 조회된 취소 건수: {}", cancels.totalElements)
 
-        return cancelList
+        // 환불 목록에 포함된 사용자 ID와 상품 ID를 추출한다.
+        val userIds = cancels.map { it.orderDetail.order.userId }.distinct()
+        val itemIds = cancels.map { it.orderDetail.itemId }.distinct()
+
+        log.info("취소 목록에 포함된 사용자 ID: {}, 상품 ID: {}", userIds, itemIds)
+
+        // 환불 목록에 포함된 사용자 정보를 조회한다.
+        log.info("취소 목록에 포함된 사용자 정보 조회 시작.")
+        val users = userServiceFeignClient.getUserInfos(userIds).body!!.data.associateBy { it.userId }
+        log.info("취소 목록에 포함된 사용자 정보 조회 완료.")
+
+        // 환불 목록에 포함된 상품 정보를 조회한다.
+        log.info("취소 목록에 포함된 상품 정보 조회 시작.")
+        val items = itemServiceFeignClient.getItemInfos(itemIds).body!!.data.associateBy { it.id }
+        log.info("취소 목록에 포함된 상품 정보 조회 완료.")
+
+        // RefundDto 목록으로 변환하여 반환한다.
+        return cancels.map { convertCancelEntityToDto(it, users, items) }
     }
+
+    fun convertCancelEntityToDto(cancel: Cancel, users: Map<Long, UserDto>, items: Map<Long, ItemInfoDto>): CancelDto {
+        log.info("취소 정보 변환 시작. 취소 ID: {}", cancel.id)
+
+        val orderDetail = cancel.orderDetail
+        val product = items.getValue(orderDetail.itemId)
+        val user = users.getValue(orderDetail.order.userId)
+
+        log.info("취소 정보 변환 완료. 취소 ID: {}", cancel.id)
+
+        return CancelDto(
+            cancelId = cancel.id!!,
+            userId = orderDetail.order.userId,
+            userName = user.name,
+            cancelRequestDate = cancel.requestDate!!.toLocalDate(),
+            orderId = orderDetail.order.id!!,
+            orderDate = orderDetail.order.date!!.toLocalDate(),
+            product = OrderedProductInfo(
+                orderDetailId = orderDetail.id!!,
+                orderStatus = orderDetail.status,
+                productInfoDto = ProductInfoDto.from(product),
+                productQuantity = orderDetail.quantity
+            ),
+            totalAmount = product.price * orderDetail.quantity,
+            expectedRefundAmount = cancel.refundAmount
+        )
+    }
+
 }
