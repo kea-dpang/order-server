@@ -9,8 +9,10 @@ import kea.dpang.order.exception.CancelNotFoundException
 import kea.dpang.order.exception.OrderDetailNotFoundException
 import kea.dpang.order.exception.UnableToCancelException
 import kea.dpang.order.feign.ItemServiceFeignClient
-import kea.dpang.order.feign.UserServiceFeignClient
-import kea.dpang.order.feign.dto.*
+import kea.dpang.order.feign.dto.ItemInfoDto
+import kea.dpang.order.feign.dto.UpdateStockListRequestDto
+import kea.dpang.order.feign.dto.UpdateStockRequestDto
+import kea.dpang.order.feign.dto.UserDto
 import kea.dpang.order.repository.CancelRepository
 import kea.dpang.order.repository.OrderDetailRepository
 import org.slf4j.LoggerFactory
@@ -24,9 +26,9 @@ import java.time.LocalDate
 @Transactional
 class CancelServiceImpl(
     private val mileageService: MileageService,
+    private val userService: UserService,
     private val orderDetailRepository: OrderDetailRepository,
     private val cancelRepository: CancelRepository,
-    private val userServiceFeignClient: UserServiceFeignClient,
     private val itemServiceFeignClient: ItemServiceFeignClient
 ) : CancelService {
 
@@ -117,10 +119,7 @@ class CancelServiceImpl(
 
         // 사용자 정보를 조회한다.
         val userId = orderDetail.order.userId
-
-        log.info("사용자 정보 조회 시작. 사용자 ID: {}", userId)
-        val user = userServiceFeignClient.getUserInfo(userId).body!!.data
-        log.info("사용자 정보 조회 완료.")
+        val user = userService.getUserInfo(userId)
 
         return CancelDto(cancel, user.name, ProductInfoDto.from(product))
     }
@@ -139,16 +138,18 @@ class CancelServiceImpl(
 
         log.info("취소 목록 조회 완료. 조회된 취소 건수: {}", cancels.totalElements)
 
-        // 환불 목록에 포함된 사용자 ID와 상품 ID를 추출한다.
+        // 취소 목록에 포함된 사용자 ID를 추출한다.
         val userIds = cancels.map { it.orderDetail.order.userId }.distinct()
+        log.info("취소 목록에 포함된 사용자 ID 목록: {}", userIds)
+
+        // 취소 목록에 포함된 사용자 정보를 조회한다.
+        val users = userService.getUserInfos(userIds).associateBy { it.userId }
+
+        // 취소 목록에 포함된 상품 ID를 추출한다.
         val itemIds = cancels.map { it.orderDetail.itemId }.distinct()
+        log.info("취소 목록에 포함된 상품 ID 목록: {}", itemIds)
 
-        // 환불 목록에 포함된 사용자 정보를 조회한다.
-        log.info("취소 목록에 포함된 사용자 정보 조회 시작. 사용자 ID 목록: {}", userIds)
-        val users = userServiceFeignClient.getUserInfos(userIds).body!!.data.associateBy { it.userId }
-        log.info("취소 목록에 포함된 사용자 정보 조회 완료.")
-
-        // 환불 목록에 포함된 상품 정보를 조회한다.
+        // 취소 목록에 포함된 상품 정보를 조회한다.
         log.info("취소 목록에 포함된 상품 정보 조회 시작. 상품 ID 목록: {}", itemIds)
         val items = itemServiceFeignClient.getItemInfos(itemIds).body!!.data.associateBy { it.id }
         log.info("취소 목록에 포함된 상품 정보 조회 완료.")

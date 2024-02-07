@@ -11,8 +11,10 @@ import kea.dpang.order.entity.OrderStatus.ORDER_RECEIVED
 import kea.dpang.order.entity.OrderStatus.PAYMENT_COMPLETED
 import kea.dpang.order.exception.*
 import kea.dpang.order.feign.ItemServiceFeignClient
-import kea.dpang.order.feign.UserServiceFeignClient
-import kea.dpang.order.feign.dto.*
+import kea.dpang.order.feign.dto.ItemInfoDto
+import kea.dpang.order.feign.dto.UpdateStockListRequestDto
+import kea.dpang.order.feign.dto.UpdateStockRequestDto
+import kea.dpang.order.feign.dto.UserDto
 import kea.dpang.order.repository.OrderRepository
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
@@ -25,8 +27,8 @@ import java.time.LocalDate
 @Transactional
 class OrderServiceImpl(
     private val mileageService: MileageService,
+    private val userService: UserService,
     private val orderRepository: OrderRepository,
-    private val userServiceFeignClient: UserServiceFeignClient,
     private val itemServiceFeignClient: ItemServiceFeignClient
 ) : OrderService {
 
@@ -280,9 +282,7 @@ class OrderServiceImpl(
         log.info("상품 정보 조회 완료.")
 
         // 주문 목록에 포함된 사용자 정보를 조회한다.
-        log.info("사용자 정보 조회 시작. 사용자 ID: {}", userIds)
-        val users = userServiceFeignClient.getUserInfos(userIds).body!!.data.associateBy { it.userId }
-        log.info("사용자 정보 조회 완료.")
+        val users = userService.getUserInfos(userIds).associateBy { it.userId }
 
         return orders.map { convertOrderEntityToDto(it, users, items) }
     }

@@ -3,13 +3,18 @@ package kea.dpang.order.service
 import kea.dpang.order.dto.OrderedProductInfo
 import kea.dpang.order.dto.ProductInfoDto
 import kea.dpang.order.dto.refund.*
-import kea.dpang.order.entity.*
 import kea.dpang.order.entity.OrderStatus.CANCELLED
 import kea.dpang.order.entity.OrderStatus.DELIVERY_COMPLETED
+import kea.dpang.order.entity.Recall
+import kea.dpang.order.entity.Refund
+import kea.dpang.order.entity.RefundReason
+import kea.dpang.order.entity.RefundStatus
 import kea.dpang.order.exception.*
 import kea.dpang.order.feign.ItemServiceFeignClient
-import kea.dpang.order.feign.UserServiceFeignClient
-import kea.dpang.order.feign.dto.*
+import kea.dpang.order.feign.dto.ItemInfoDto
+import kea.dpang.order.feign.dto.UpdateStockListRequestDto
+import kea.dpang.order.feign.dto.UpdateStockRequestDto
+import kea.dpang.order.feign.dto.UserDto
 import kea.dpang.order.repository.OrderDetailRepository
 import kea.dpang.order.repository.RefundRepository
 import org.slf4j.LoggerFactory
@@ -23,9 +28,9 @@ import java.time.LocalDate
 @Transactional
 class RefundServiceImpl(
     private val mileageService: MileageService,
+    private val userService: UserService,
     private val refundRepository: RefundRepository,
     private val orderDetailRepository: OrderDetailRepository,
-    private val userServiceFeignClient: UserServiceFeignClient,
     private val itemServiceFeignClient: ItemServiceFeignClient
 ) : RefundService {
 
@@ -123,10 +128,7 @@ class RefundServiceImpl(
 
         // 환불 요청한 사용자 정보를 얻는다.
         val userId = order.userId
-
-        log.info("환불 요청한 사용자 정보 조회 시작. 사용자 ID: {}", userId)
-        val user = userServiceFeignClient.getUserInfo(userId).body!!.data
-        log.info("환불 요청한 사용자 정보 조회 완료.")
+        val user = userService.getUserInfo(userId)
 
         // 환불 요청한 주문의 상품 정보를 얻는다.
         val itemId = orderDetail.itemId
@@ -189,16 +191,16 @@ class RefundServiceImpl(
         val refunds = refundRepository.findRefunds(startDate, endDate, refundReason, userId, pageable)
         log.info("환불 목록 조회 완료. 조회된 환불 수: {}", refunds.size)
 
-        // 환불 목록에 포함된 사용자 ID와 상품 ID를 추출한다.
+        // 환불 목록에 포함된 사용자 ID를 추출한다.
         val userIds = refunds.map { it.orderDetail.order.userId }.distinct()
-        val itemIds = refunds.map { it.orderDetail.itemId }.distinct()
-
-        log.info("환불 목록에 포함된 사용자 ID: {}, 상품 ID: {}", userIds, itemIds)
+        log.info("환불 목록에 포함된 사용자 ID: {}", userIds)
 
         // 환불 목록에 포함된 사용자 정보를 조회한다.
-        log.info("환불 목록에 포함된 사용자 정보 조회 시작. 사용자 ID 목록: {}", userIds)
-        val users = userServiceFeignClient.getUserInfos(userIds).body!!.data.associateBy { it.userId }
-        log.info("환불 목록에 포함된 사용자 정보 조회 완료.")
+        val users = userService.getUserInfos(userIds).associateBy { it.userId }
+
+        // 환불 목록에 포함된 상품 ID를 추출한다.
+        val itemIds = refunds.map { it.orderDetail.itemId }.distinct()
+        log.info("환불 목록에 포함된 상품 ID: {}", itemIds)
 
         // 환불 목록에 포함된 상품 정보를 조회한다.
         log.info("환불 목록에 포함된 상품 정보 조회 시작. 상품 ID 목록: {}", itemIds)
