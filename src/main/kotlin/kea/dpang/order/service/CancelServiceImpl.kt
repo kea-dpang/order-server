@@ -1,6 +1,5 @@
 package kea.dpang.order.service
 
-import kea.dpang.order.dto.OrderedProductInfo
 import kea.dpang.order.dto.ProductInfoDto
 import kea.dpang.order.dto.cancel.CancelDto
 import kea.dpang.order.entity.Cancel
@@ -130,30 +129,7 @@ class CancelServiceImpl(
 
         log.info("사용자 정보 조회 완료. 사용자 ID: {}", userId)
 
-        // 상품 정보, 주문 상세 정보, 취소 정보를 바탕으로 OrderedProductInfo를 생성한다.
-        val orderedProductInfo = OrderedProductInfo(
-            orderDetailId = orderDetail.id!!,
-            orderStatus = orderDetail.status,
-            productInfoDto = ProductInfoDto.from(product),
-            productQuantity = orderDetail.quantity
-        )
-
-        // Cancel 엔티티와 OrderedProductInfo를 사용하여 CancelDto를 생성한다.
-        val cancelDto = CancelDto(
-            cancelId = cancel.id!!,
-            userId = orderDetail.order.userId,
-            userName = user.name,
-            cancelRequestDate = cancel.requestDate!!.toLocalDate(),
-            orderId = orderDetail.order.id!!,
-            orderDate = orderDetail.order.date!!.toLocalDate(),
-            product = orderedProductInfo,
-            totalAmount = product.price * orderDetail.quantity,
-            expectedRefundAmount = cancel.refundAmount
-        )
-
-        log.info("취소 정보 변환 완료. 취소 ID: {}", cancel.id)
-
-        return cancelDto
+        return CancelDto(cancel, user.name, ProductInfoDto.from(product))
     }
 
     @Transactional(readOnly = true)
@@ -190,31 +166,20 @@ class CancelServiceImpl(
         return cancels.map { convertCancelEntityToDto(it, users, items) }
     }
 
+    /**
+     * Cancel 엔티티를 CancelDto로 변환하는 메서드
+     *
+     * @param cancel 변환할 Cancel 엔티티 객체
+     * @param users 사용자 정보 목록
+     * @param items 상품 정보 목록
+     * @return 변환된 CancelDto 객체
+     */
     fun convertCancelEntityToDto(cancel: Cancel, users: Map<Long, UserDto>, items: Map<Long, ItemInfoDto>): CancelDto {
-        log.info("취소 정보 변환 시작. 취소 ID: {}", cancel.id)
-
         val orderDetail = cancel.orderDetail
         val product = items.getValue(orderDetail.itemId)
         val user = users.getValue(orderDetail.order.userId)
 
-        log.info("취소 정보 변환 완료. 취소 ID: {}", cancel.id)
-
-        return CancelDto(
-            cancelId = cancel.id!!,
-            userId = orderDetail.order.userId,
-            userName = user.name,
-            cancelRequestDate = cancel.requestDate!!.toLocalDate(),
-            orderId = orderDetail.order.id!!,
-            orderDate = orderDetail.order.date!!.toLocalDate(),
-            product = OrderedProductInfo(
-                orderDetailId = orderDetail.id!!,
-                orderStatus = orderDetail.status,
-                productInfoDto = ProductInfoDto.from(product),
-                productQuantity = orderDetail.quantity
-            ),
-            totalAmount = product.price * orderDetail.quantity,
-            expectedRefundAmount = cancel.refundAmount
-        )
+        return CancelDto(cancel, user.name, ProductInfoDto.from(product))
     }
 
 }
