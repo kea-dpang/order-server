@@ -66,6 +66,7 @@ class CancelServiceImpl(
         orderDetail.assignCancel(cancel)
 
         // 취소된 주문에 포함된 상품의 개수를 상품 서비스에 요청하여 재고를 증가시킨다.
+        log.info("재고 증가 요청 시작. 상품 ID: {}, 증가량: {}", orderDetail.itemId, orderDetail.quantity)
         itemServiceFeignClient.updateStock(
             UpdateStockListRequestDto(
                 listOf(
@@ -76,7 +77,7 @@ class CancelServiceImpl(
                 )
             )
         )
-        log.info("재고 증가 요청 완료. 상품 ID: {}, 증가량: {}", orderDetail.itemId, orderDetail.quantity)
+        log.info("재고 증가 요청 완료.")
 
         // 주문에 사용된 마일리지를 마일리지 서비스에 요청하여 사용자에게 환불한다.
         val refundMileageInfo = RefundMileageRequestDTO(
@@ -84,9 +85,10 @@ class CancelServiceImpl(
             amount = cancel.refundAmount,
             reason = "주문 취소"
         )
-        mileageServiceFeignClient.refundMileage(orderDetail.order.userId, refundMileageInfo)
 
-        log.info("마일리지 환불 요청 완료. 사용자 ID: {}, 환불 금액: {}", orderDetail.order.userId, orderDetail.order.productPaymentAmount)
+        log.info("마일리지 환불 요청 시작. 사용자 ID: {}, 환불 금액: {}", orderDetail.order.userId, orderDetail.order.productPaymentAmount)
+        mileageServiceFeignClient.refundMileage(orderDetail.order.userId, refundMileageInfo)
+        log.info("마일리지 환불 요청 완료.")
 
         log.info("주문 취소 완료. 주문 상세 ID: {}", orderDetailId)
     }
@@ -115,19 +117,19 @@ class CancelServiceImpl(
      * @return 변환된 CancelDto 객체
      */
     private fun convertCancelEntityToDto(cancel: Cancel): CancelDto {
-        log.info("취소 정보 변환 시작. 취소 ID: {}", cancel.id)
-
         // 상품 정보를 조회한다.
         val orderDetail = cancel.orderDetail
-        val product = itemServiceFeignClient.getItemInfo(orderDetail.itemId).body!!.data
 
-        log.info("상품 정보 조회 완료. 상품 ID: {}", orderDetail.itemId)
+        log.info("상품 정보 조회 시작. 상품 ID: {}", orderDetail.itemId)
+        val product = itemServiceFeignClient.getItemInfo(orderDetail.itemId).body!!.data
+        log.info("상품 정보 조회 완료.")
 
         // 사용자 정보를 조회한다.
         val userId = orderDetail.order.userId
-        val user = userServiceFeignClient.getUserInfo(userId).body!!.data
 
-        log.info("사용자 정보 조회 완료. 사용자 ID: {}", userId)
+        log.info("사용자 정보 조회 시작. 사용자 ID: {}", userId)
+        val user = userServiceFeignClient.getUserInfo(userId).body!!.data
+        log.info("사용자 정보 조회 완료.")
 
         return CancelDto(cancel, user.name, ProductInfoDto.from(product))
     }
@@ -150,15 +152,13 @@ class CancelServiceImpl(
         val userIds = cancels.map { it.orderDetail.order.userId }.distinct()
         val itemIds = cancels.map { it.orderDetail.itemId }.distinct()
 
-        log.info("취소 목록에 포함된 사용자 ID: {}, 상품 ID: {}", userIds, itemIds)
-
         // 환불 목록에 포함된 사용자 정보를 조회한다.
-        log.info("취소 목록에 포함된 사용자 정보 조회 시작.")
+        log.info("취소 목록에 포함된 사용자 정보 조회 시작. 사용자 ID 목록: {}", userIds)
         val users = userServiceFeignClient.getUserInfos(userIds).body!!.data.associateBy { it.userId }
         log.info("취소 목록에 포함된 사용자 정보 조회 완료.")
 
         // 환불 목록에 포함된 상품 정보를 조회한다.
-        log.info("취소 목록에 포함된 상품 정보 조회 시작.")
+        log.info("취소 목록에 포함된 상품 정보 조회 시작. 상품 ID 목록: {}", itemIds)
         val items = itemServiceFeignClient.getItemInfos(itemIds).body!!.data.associateBy { it.id }
         log.info("취소 목록에 포함된 상품 정보 조회 완료.")
 
