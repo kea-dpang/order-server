@@ -28,7 +28,7 @@ interface ItemServiceFeignClient {
      * @return 상품 목록이 담긴 DTO.
      */
     @GetMapping("/api/items/list")
-    fun getItemList(
+    fun getItemInfos(
         @RequestParam itemIds: List<Long>
     ): ResponseEntity<SuccessResponse<List<ItemInfoDto>>>
 

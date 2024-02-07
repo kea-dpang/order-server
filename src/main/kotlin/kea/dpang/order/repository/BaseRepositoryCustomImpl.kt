@@ -56,6 +56,7 @@ abstract class BaseRepositoryCustomImpl<T>(
         val entityList = jpaQueryFactory
             .selectFrom(entityPath)
             .where(builder)
+            .orderBy(datePath.desc())
             .offset(pageable.offset)
             .limit(pageable.pageSize.toLong())
             .fetch()

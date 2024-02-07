@@ -1,6 +1,8 @@
 package kea.dpang.order.dto.cancel
 
 import kea.dpang.order.dto.OrderedProductInfo
+import kea.dpang.order.dto.ProductInfoDto
+import kea.dpang.order.entity.Cancel
 import java.time.LocalDate
 
 /**
@@ -26,4 +28,21 @@ data class CancelDto(
     val product: OrderedProductInfo,
     val totalAmount: Int,
     val expectedRefundAmount: Int
-)
+) {
+    constructor(cancel: Cancel, userName: String, productInfoDto: ProductInfoDto) : this(
+        cancelId = cancel.id!!,
+        userId = cancel.orderDetail.order.userId,
+        userName = userName,
+        cancelRequestDate = cancel.requestDate!!.toLocalDate(),
+        orderId = cancel.orderDetail.order.id!!,
+        orderDate = cancel.orderDetail.order.date!!.toLocalDate(),
+        product = OrderedProductInfo(
+            orderDetailId = cancel.orderDetail.id!!,
+            orderStatus = cancel.orderDetail.status,
+            productInfoDto = productInfoDto,
+            productQuantity = cancel.orderDetail.quantity
+        ),
+        totalAmount = productInfoDto.price * cancel.orderDetail.quantity,
+        expectedRefundAmount = cancel.refundAmount
+    )
+}

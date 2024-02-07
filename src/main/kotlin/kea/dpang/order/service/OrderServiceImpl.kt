@@ -41,7 +41,7 @@ class OrderServiceImpl(
 
         // 상품 서비스로부터 상품 정보를 한 번에 조회한다.
         val productIds = productInfoList.map { it.itemId }
-        val products = itemServiceFeignClient.getItemList(productIds).body!!.data
+        val products = itemServiceFeignClient.getItemInfos(productIds).body!!.data
 
         log.info("상품 정보 조회 완료. 상품 정보: {}", products)
 
@@ -158,7 +158,7 @@ class OrderServiceImpl(
 
         // 상품 서비스로부터 상품 정보를 한 번에 조회한다.
         val itemIds = orderRequestDto.orderIteminfo.map { it.itemId }
-        val itemList = itemServiceFeignClient.getItemList(itemIds).body!!.data
+        val itemList = itemServiceFeignClient.getItemInfos(itemIds).body!!.data
 
         // 주문 상세 정보를 생성하고 주문 객체에 설정한다.
         order.details = orderRequestDto.orderIteminfo.map { orderIteminfo ->
@@ -295,7 +295,7 @@ class OrderServiceImpl(
 
         // 상품 서비스로부터 상품 정보를 한 번에 조회한다.
         val itemIds = order.details.map { it.itemId }
-        val itemList = itemServiceFeignClient.getItemList(itemIds).body!!.data
+        val itemList = itemServiceFeignClient.getItemInfos(itemIds).body!!.data
 
         // 상품 정보 조회 및 DTO 설정
         val productList = order.details.map { orderDetail ->
