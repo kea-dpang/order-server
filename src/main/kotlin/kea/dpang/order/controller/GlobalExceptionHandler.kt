@@ -19,7 +19,8 @@ class GlobalExceptionHandler {
         OrderDetailNotFoundException::class,
         OrderNotFoundException::class,
         RefundNotFoundException::class,
-        ProductNotFoundException::class
+        ProductNotFoundException::class,
+        UserNotFoundException::class
     )
     fun handleNotFoundException(ex: RuntimeException, request: WebRequest): ResponseEntity<ErrorResponse> {
         return generateErrorResponse(ex, request, HttpStatus.NOT_FOUND)

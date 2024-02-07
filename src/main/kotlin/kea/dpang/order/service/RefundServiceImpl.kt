@@ -13,9 +13,7 @@ import kea.dpang.order.exception.*
 import kea.dpang.order.feign.ItemServiceFeignClient
 import kea.dpang.order.feign.MileageServiceFeignClient
 import kea.dpang.order.feign.UserServiceFeignClient
-import kea.dpang.order.feign.dto.RefundMileageRequestDTO
-import kea.dpang.order.feign.dto.UpdateStockListRequestDto
-import kea.dpang.order.feign.dto.UpdateStockRequestDto
+import kea.dpang.order.feign.dto.*
 import kea.dpang.order.repository.OrderDetailRepository
 import kea.dpang.order.repository.RefundRepository
 import org.slf4j.LoggerFactory
@@ -201,9 +199,65 @@ class RefundServiceImpl(
     ): Page<RefundDto> {
         log.info("환불 목록 검색 시작. 시작 날짜: {}, 종료 날짜: {}, 환불 사유: {}, 사용자 ID: {}, 페이지 정보: {}", startDate, endDate, refundReason, userId, pageable)
 
-        return refundRepository
-            .findRefunds(startDate, endDate, refundReason, userId, pageable)
-            .map { convertRefundEntityToDto(it) }
+        // 환불 목록을 조회한다.
+        val refunds = refundRepository.findRefunds(startDate, endDate, refundReason, userId, pageable)
+        log.info("환불 목록 조회 완료. 조회된 환불 수: {}", refunds.size)
+
+        // 환불 목록에 포함된 사용자 ID와 상품 ID를 추출한다.
+        val userIds = refunds.map { it.orderDetail.order.userId }.distinct()
+        val itemIds = refunds.map { it.orderDetail.itemId }.distinct()
+
+        log.info("환불 목록에 포함된 사용자 ID: {}, 상품 ID: {}", userIds, itemIds)
+
+        // 환불 목록에 포함된 사용자 정보를 조회한다.
+        log.info("환불 목록에 포함된 사용자 정보 조회 시작.")
+        val users = userServiceFeignClient.getUserList(userIds).body!!.data.associateBy { it.userId }
+        log.info("환불 목록에 포함된 사용자 정보 조회 완료.")
+
+        // 환불 목록에 포함된 상품 정보를 조회한다.
+        log.info("환불 목록에 포함된 상품 정보 조회 시작.")
+        val items = itemServiceFeignClient.getItemList(itemIds).body!!.data.associateBy { it.id }
+        log.info("환불 목록에 포함된 상품 정보 조회 완료.")
+
+        // RefundDto 목록으로 변환하여 반환한다.
+        return refunds.map { convertRefundEntityToDto(it, users, items) }
+    }
+
+    fun convertRefundEntityToDto(refund: Refund, users: Map<Long, UserDto>, items: Map<Long, ItemInfoDto>): RefundDto {
+        val orderDetail = refund.orderDetail
+        val order = orderDetail.order
+
+        // 환불 요청한 사용자 정보를 얻는다.
+        val userId = order.userId
+        val user = users[userId]
+            ?: throw UserNotFoundException(userId)
+
+        // 환불 요청한 주문의 상세 정보를 얻는다.
+        val productInfo = items[orderDetail.itemId]
+            ?: throw ItemNotFoundException(orderDetail.itemId)
+        val productInfoDto = ProductInfoDto.from(productInfo)
+
+        val orderedProductInfo = OrderedProductInfo(
+            orderDetailId = orderDetail.id!!,
+            orderStatus = orderDetail.status,
+            productInfoDto = productInfoDto,
+            productQuantity = orderDetail.quantity
+        )
+
+        val refundDto = RefundDto(
+            refundId = refund.id!!,
+            refundRequestDate = refund.refundRequestDate!!.toLocalDate(),
+            userId = order.userId,
+            userName = user.name,
+            orderId = order.id!!,
+            orderDate = order.date!!.toLocalDate(),
+            product = orderedProductInfo,
+            expectedRefundAmount = refund.refundAmount,
+            refundStatus = refund.refundStatus,
+            refundReason = refund.refundReason,
+        )
+
+        return refundDto
     }
 
     override fun updateRefundStatus(refundId: Long, refundStatusDto: RefundStatusDto) {
