@@ -216,7 +216,7 @@ class RefundServiceImpl(
 
         // 환불 목록에 포함된 상품 정보를 조회한다.
         log.info("환불 목록에 포함된 상품 정보 조회 시작.")
-        val items = itemServiceFeignClient.getItemList(itemIds).body!!.data.associateBy { it.id }
+        val items = itemServiceFeignClient.getItemInfos(itemIds).body!!.data.associateBy { it.id }
         log.info("환불 목록에 포함된 상품 정보 조회 완료.")
 
         // RefundDto 목록으로 변환하여 반환한다.
