@@ -245,12 +245,10 @@ class RefundServiceImpl(
 
         // 환불 요청한 사용자 정보를 얻는다.
         val userId = order.userId
-        val user = users[userId]
-            ?: throw UserNotFoundException(userId)
+        val user = users.getValue(userId)
 
         // 환불 요청한 주문의 상세 정보를 얻는다.
-        val productInfo = items[orderDetail.itemId]
-            ?: throw ItemNotFoundException(orderDetail.itemId)
+        val productInfo = items.getValue(orderDetail.itemId)
         val productInfoDto = ProductInfoDto.from(productInfo)
 
         return createRefundDto(refund, user, productInfoDto)

@@ -12,9 +12,8 @@ import kea.dpang.order.entity.OrderStatus.PAYMENT_COMPLETED
 import kea.dpang.order.exception.*
 import kea.dpang.order.feign.ItemServiceFeignClient
 import kea.dpang.order.feign.MileageServiceFeignClient
-import kea.dpang.order.feign.dto.ConsumeMileageRequestDto
-import kea.dpang.order.feign.dto.UpdateStockListRequestDto
-import kea.dpang.order.feign.dto.UpdateStockRequestDto
+import kea.dpang.order.feign.UserServiceFeignClient
+import kea.dpang.order.feign.dto.*
 import kea.dpang.order.repository.OrderRepository
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
@@ -27,6 +26,7 @@ import java.time.LocalDate
 @Transactional
 class OrderServiceImpl(
     private val orderRepository: OrderRepository,
+    private val userServiceFeignClient: UserServiceFeignClient,
     private val itemServiceFeignClient: ItemServiceFeignClient,
     private val mileageServiceFeignClient: MileageServiceFeignClient
 ) : OrderService {
@@ -274,15 +274,67 @@ class OrderServiceImpl(
     ): Page<OrderDto> {
         log.info("주문 목록 조회 시작. 시작 날짜: {}, 종료 날짜: {}, 사용자 ID: {}, 페이지 정보: {}", startDate, endDate, userId, pageable)
 
-        val orderList = orderRepository
+        val orders = orderRepository
             .findOrders(startDate, endDate, userId, pageable)
-            .map { convertOrderEntityToDto(it) }
 
-        log.info("주문 목록 조회 완료. 조회된 주문 건수: {}", orderList.totalElements)
+        log.info("주문 목록 조회 완료. 조회된 주문 건수: {}", orders.totalElements)
 
-        return orderList
+        // 주문 목록에 포함된 상품 ID와 사용자 ID를 추출한다.
+        val itemIds = orders.content.flatMap { it.details }.map { it.itemId }.distinct()
+        val userIds = orders.content.map { it.userId }.distinct()
+
+        log.info("주문 목록에 포함된 상품 ID: {}, 사용자 ID: {}", itemIds, userIds)
+
+        // 주문 목록에 포함된 상품 정보를 조회한다.
+        log.info("상품 정보 조회 시작. 상품 ID: {}", itemIds)
+        val items = itemServiceFeignClient.getItemInfos(itemIds).body!!.data.associateBy { it.id }
+        log.info("상품 정보 조회 완료. 조회된 상품 건수: {}", items.size)
+
+        // 주문 목록에 포함된 사용자 정보를 조회한다.
+        log.info("사용자 정보 조회 시작. 사용자 ID: {}", userIds)
+        val users = userServiceFeignClient.getUserInfos(userIds).body!!.data.associateBy { it.userId }
+        log.info("사용자 정보 조회 완료. 조회된 사용자 건수: {}", users.size)
+
+        return orders.map { convertOrderEntityToDto(it, users, items) }
     }
 
+    /**
+     * Order 엔티티를 OrderDto로 변환하는 메서드
+     *
+     * @param order 변환할 Order 엔티티 객체
+     * @param users 주문에 포함된 사용자 정보
+     * @param items 주문에 포함된 상품 정보
+     * @return 변환된 OrderDto 객체
+     */
+    private fun convertOrderEntityToDto(
+        order: Order,
+        users: Map<Long, UserDto>,
+        items: Map<Long, ItemInfoDto>
+    ): OrderDto {
+        log.info("Order 엔티티를 OrderDto로 변환 시작. 변환할 Order ID: {}", order.id)
+
+        val productList = order.details.map { orderDetail ->
+            val productInfo = items.getValue(orderDetail.itemId)
+
+            OrderedProductInfo(
+                orderDetailId = orderDetail.id!!,
+                orderStatus = orderDetail.status,
+                productInfoDto = ProductInfoDto.from(productInfo),
+                productQuantity = orderDetail.quantity
+            )
+        }
+
+        val orderDto = OrderDto(
+            orderId = order.id!!,
+            orderDate = order.date!!.toLocalDate(),
+            productList = productList,
+            orderer = users.getValue(order.userId).name
+        )
+
+        log.info("Order 엔티티를 OrderDto로 변환 완료. 변환된 OrderDto ID: {}", orderDto.orderId)
+
+        return orderDto
+    }
 
     /**
      * Order 엔티티를 OrderDto로 변환하는 메서드
