@@ -211,7 +211,7 @@ class RefundServiceImpl(
 
         // 환불 목록에 포함된 사용자 정보를 조회한다.
         log.info("환불 목록에 포함된 사용자 정보 조회 시작.")
-        val users = userServiceFeignClient.getUserList(userIds).body!!.data.associateBy { it.userId }
+        val users = userServiceFeignClient.getUserInfos(userIds).body!!.data.associateBy { it.userId }
         log.info("환불 목록에 포함된 사용자 정보 조회 완료.")
 
         // 환불 목록에 포함된 상품 정보를 조회한다.

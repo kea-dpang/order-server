@@ -15,7 +15,7 @@ interface UserServiceFeignClient {
     fun getUserInfo(@PathVariable userId: Long): ResponseEntity<SuccessResponse<UserDto>>
 
     @GetMapping("/api/users/list")
-    fun getUserList(
+    fun getUserInfos(
         @RequestParam userIds: List<Long>
     ): ResponseEntity<SuccessResponse<List<UserDto>>>
 }
