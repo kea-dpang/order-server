@@ -3,12 +3,9 @@ package kea.dpang.order.service
 import kea.dpang.order.dto.OrderedProductInfo
 import kea.dpang.order.dto.ProductInfoDto
 import kea.dpang.order.dto.refund.*
+import kea.dpang.order.entity.*
 import kea.dpang.order.entity.OrderStatus.CANCELLED
 import kea.dpang.order.entity.OrderStatus.DELIVERY_COMPLETED
-import kea.dpang.order.entity.RefundReason
-import kea.dpang.order.entity.Recall
-import kea.dpang.order.entity.Refund
-import kea.dpang.order.entity.RefundStatus
 import kea.dpang.order.exception.*
 import kea.dpang.order.feign.ItemServiceFeignClient
 import kea.dpang.order.feign.MileageServiceFeignClient
@@ -157,11 +154,27 @@ class RefundServiceImpl(
 
         log.info("환불 요청한 사용자 정보 조회 완료. 사용자 ID: {}", userId)
 
-        // ProductInfoDto 생성
+        // 환불 요청한 주문의 상품 정보를 얻는다.
         val productInfo = itemServiceFeignClient.getItemInfo(orderDetail.itemId).body!!.data // 상품 정보 가져오기
-        val productInfoDto = ProductInfoDto.from(productInfo)
 
-        // OrderedProductInfo 생성
+        // 상품 정보를 DTO로 변환한다.
+        val productInfoDto = ProductInfoDto.from(productInfo)
+        return createRefundDto(refund, orderDetail, order, user, productInfoDto)
+    }
+
+    /**
+     * Refund 엔티티를 RefundDto로 변환하는 메서드
+     *
+     * @param refund 변환할 Refund 엔티티 객체
+     * @return 변환된 RefundDto 객체
+     */
+    fun createRefundDto(
+        refund: Refund,
+        orderDetail: OrderDetail,
+        order: Order,
+        user: UserDto,
+        productInfoDto: ProductInfoDto
+    ): RefundDto {
         val orderedProductInfo = OrderedProductInfo(
             orderDetailId = orderDetail.id!!,
             orderStatus = orderDetail.status,
@@ -169,8 +182,7 @@ class RefundServiceImpl(
             productQuantity = orderDetail.quantity
         )
 
-        // RefundDto 생성
-        val refundDto = RefundDto(
+        return RefundDto(
             refundId = refund.id!!,
             refundRequestDate = refund.refundRequestDate!!.toLocalDate(),
             userId = order.userId,
@@ -182,12 +194,8 @@ class RefundServiceImpl(
             refundStatus = refund.refundStatus,
             refundReason = refund.refundReason,
         )
-
-        log.info("환불 DTO 변환 완료. 환불 ID: {}", refund.id)
-
-        // RefundDto 생성
-        return refundDto
     }
+
 
     @Transactional(readOnly = true)
     override fun getRefundList(
@@ -223,6 +231,14 @@ class RefundServiceImpl(
         return refunds.map { convertRefundEntityToDto(it, users, items) }
     }
 
+    /**
+     * Refund 엔티티를 RefundDto로 변환하는 메서드
+     *
+     * @param refund 변환할 Refund 엔티티 객체
+     * @param users 환불 목록에 포함된 사용자 정보
+     * @param items 환불 목록에 포함된 상품 정보
+     * @return 변환된 RefundDto 객체
+     */
     fun convertRefundEntityToDto(refund: Refund, users: Map<Long, UserDto>, items: Map<Long, ItemInfoDto>): RefundDto {
         val orderDetail = refund.orderDetail
         val order = orderDetail.order
@@ -237,27 +253,7 @@ class RefundServiceImpl(
             ?: throw ItemNotFoundException(orderDetail.itemId)
         val productInfoDto = ProductInfoDto.from(productInfo)
 
-        val orderedProductInfo = OrderedProductInfo(
-            orderDetailId = orderDetail.id!!,
-            orderStatus = orderDetail.status,
-            productInfoDto = productInfoDto,
-            productQuantity = orderDetail.quantity
-        )
-
-        val refundDto = RefundDto(
-            refundId = refund.id!!,
-            refundRequestDate = refund.refundRequestDate!!.toLocalDate(),
-            userId = order.userId,
-            userName = user.name,
-            orderId = order.id!!,
-            orderDate = order.date!!.toLocalDate(),
-            product = orderedProductInfo,
-            expectedRefundAmount = refund.refundAmount,
-            refundStatus = refund.refundStatus,
-            refundReason = refund.refundReason,
-        )
-
-        return refundDto
+        return createRefundDto(refund, orderDetail, order, user, productInfoDto)
     }
 
     override fun updateRefundStatus(refundId: Long, refundStatusDto: RefundStatusDto) {
