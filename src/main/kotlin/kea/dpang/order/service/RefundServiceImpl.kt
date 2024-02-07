@@ -8,7 +8,6 @@ import kea.dpang.order.entity.OrderStatus.CANCELLED
 import kea.dpang.order.entity.OrderStatus.DELIVERY_COMPLETED
 import kea.dpang.order.exception.*
 import kea.dpang.order.feign.ItemServiceFeignClient
-import kea.dpang.order.feign.MileageServiceFeignClient
 import kea.dpang.order.feign.UserServiceFeignClient
 import kea.dpang.order.feign.dto.*
 import kea.dpang.order.repository.OrderDetailRepository
@@ -23,11 +22,11 @@ import java.time.LocalDate
 @Service
 @Transactional
 class RefundServiceImpl(
+    private val mileageService: MileageService,
     private val refundRepository: RefundRepository,
     private val orderDetailRepository: OrderDetailRepository,
-    val userServiceFeignClient: UserServiceFeignClient,
-    private val itemServiceFeignClient: ItemServiceFeignClient,
-    private val mileageServiceFeignClient: MileageServiceFeignClient
+    private val userServiceFeignClient: UserServiceFeignClient,
+    private val itemServiceFeignClient: ItemServiceFeignClient
 ) : RefundService {
 
     private val log = LoggerFactory.getLogger(RefundServiceImpl::class.java)
@@ -80,28 +79,6 @@ class RefundServiceImpl(
         // 주문 상세 정보에 환불 정보를 연관 관계 편의 메서드를 사용하여 추가한다.
         orderDetail.assignRefund(refund)
 
-        // 취소된 주문에 포함된 상품의 개수를 상품 서비스에 요청하여 재고를 증가시킨다.
-        itemServiceFeignClient.updateStock(
-            UpdateStockListRequestDto(
-                listOf(
-                    UpdateStockRequestDto(
-                        itemId = orderDetail.itemId,
-                        quantity = orderDetail.quantity
-                    )
-                )
-            )
-        )
-        log.info("상품 재고 증가 요청 완료. 상품 ID: {}, 수량: {}", orderDetail.itemId, orderDetail.quantity)
-
-        // 주문에 사용된 마일리지를 마일리지 서비스에 요청하여 사용자에게 환불한다.
-        val refundMileageInfo = RefundMileageRequestDTO(
-            userId = orderDetail.order.userId,
-            amount = orderDetail.order.productPaymentAmount,
-            reason = "주문 취소"
-        )
-        mileageServiceFeignClient.refundMileage(orderDetail.order.userId, refundMileageInfo)
-        log.info("마일리지 환불 요청 완료. 사용자 ID: {}, 환불 마일리지: {}", orderDetail.order.userId, refundMileageInfo.amount)
-
         log.info("환불 요청 완료. 주문 상세 ID: {}", orderDetailId)
     }
 
@@ -116,10 +93,10 @@ class RefundServiceImpl(
                 RefundNotFoundException(refundId)
             }
 
-        log.info("환불 정보 조회 완료. 환불 ID: {}", refundId)
+        log.info("환불 정보 조회 완료.")
 
         // 조회된 환불 상세 정보를 RefundDetailDto로 변환 및 반환한다.
-        val refundDetailDto = RefundDetailDto(
+        return RefundDetailDto(
             refundDto = convertRefundEntityToDto(refund),
             recallInfo = RetrievalInfo.from(refund.recall!!),
             refundInfo = RefundInfo(
@@ -129,10 +106,6 @@ class RefundServiceImpl(
             ),
             returnInfo = ReturnInfo.from(refund)
         )
-
-        log.info("환불 상세 정보 변환 완료. 환불 ID: {}", refundId)
-
-        return refundDetailDto
     }
 
     /**
@@ -150,12 +123,17 @@ class RefundServiceImpl(
 
         // 환불 요청한 사용자 정보를 얻는다.
         val userId = order.userId
-        val user = userServiceFeignClient.getUserInfo(userId).body!!.data
 
-        log.info("환불 요청한 사용자 정보 조회 완료. 사용자 ID: {}", userId)
+        log.info("환불 요청한 사용자 정보 조회 시작. 사용자 ID: {}", userId)
+        val user = userServiceFeignClient.getUserInfo(userId).body!!.data
+        log.info("환불 요청한 사용자 정보 조회 완료.")
 
         // 환불 요청한 주문의 상품 정보를 얻는다.
-        val productInfo = itemServiceFeignClient.getItemInfo(orderDetail.itemId).body!!.data // 상품 정보 가져오기
+        val itemId = orderDetail.itemId
+
+        log.info("환불 요청한 상품 정보 조회 시작. 상품 ID: {}", itemId)
+        val productInfo = itemServiceFeignClient.getItemInfo(itemId).body!!.data // 상품 정보 가져오기
+        log.info("환불 요청한 상품 정보 조회 완료.")
 
         // 상품 정보를 DTO로 변환한다.
         val productInfoDto = ProductInfoDto.from(productInfo)
@@ -218,12 +196,12 @@ class RefundServiceImpl(
         log.info("환불 목록에 포함된 사용자 ID: {}, 상품 ID: {}", userIds, itemIds)
 
         // 환불 목록에 포함된 사용자 정보를 조회한다.
-        log.info("환불 목록에 포함된 사용자 정보 조회 시작.")
+        log.info("환불 목록에 포함된 사용자 정보 조회 시작. 사용자 ID 목록: {}", userIds)
         val users = userServiceFeignClient.getUserInfos(userIds).body!!.data.associateBy { it.userId }
         log.info("환불 목록에 포함된 사용자 정보 조회 완료.")
 
         // 환불 목록에 포함된 상품 정보를 조회한다.
-        log.info("환불 목록에 포함된 상품 정보 조회 시작.")
+        log.info("환불 목록에 포함된 상품 정보 조회 시작. 상품 ID 목록: {}", itemIds)
         val items = itemServiceFeignClient.getItemInfos(itemIds).body!!.data.associateBy { it.id }
         log.info("환불 목록에 포함된 상품 정보 조회 완료.")
 
@@ -239,7 +217,7 @@ class RefundServiceImpl(
      * @param items 환불 목록에 포함된 상품 정보
      * @return 변환된 RefundDto 객체
      */
-    fun convertRefundEntityToDto(refund: Refund, users: Map<Long, UserDto>, items: Map<Long, ItemInfoDto>): RefundDto {
+    private fun convertRefundEntityToDto(refund: Refund, users: Map<Long, UserDto>, items: Map<Long, ItemInfoDto>): RefundDto {
         val orderDetail = refund.orderDetail
         val order = orderDetail.order
 
@@ -288,16 +266,10 @@ class RefundServiceImpl(
             val orderDetail = refund.orderDetail
 
             // 주문에 사용된 마일리지를 마일리지 서비스에 요청하여 사용자에게 환불한다.
-            val refundMileageInfo = RefundMileageRequestDTO(
-                userId = orderDetail.order.userId,
-                amount = orderDetail.purchasePrice,
-                reason = "주문 취소"
-            )
-
-            mileageServiceFeignClient.refundMileage(orderDetail.order.userId, refundMileageInfo)
-            log.info("마일리지 환불 요청 완료. 사용자 ID: {}, 환불 금액: {}", orderDetail.order.userId, orderDetail.purchasePrice)
+            mileageService.refundMileage(orderDetail.order.userId, orderDetail.purchasePrice, "주문 취소")
 
             // 취소된 주문에 포함된 상품의 개수를 상품 서비스에 요청하여 재고를 증가시킨다.
+            log.info("재고 증가 요청 시작. 상품 ID: {}, 증가량: {}", orderDetail.itemId, orderDetail.quantity)
             itemServiceFeignClient.updateStock(
                 UpdateStockListRequestDto(
                     listOf(
@@ -309,7 +281,7 @@ class RefundServiceImpl(
                 )
             )
 
-            log.info("재고 증가 요청 완료. 상품 ID: {}, 증가량: {}", orderDetail.itemId, orderDetail.quantity)
+            log.info("재고 증가 요청 완료.")
         }
 
         log.info("환불 상태 업데이트 완료. 주문 상세 ID: {}, 새로운 환불 상태: {}", refund.orderDetail.id, newStatus)
