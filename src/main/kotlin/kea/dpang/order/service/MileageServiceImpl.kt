@@ -2,7 +2,6 @@ package kea.dpang.order.service
 
 import kea.dpang.order.feign.MileageServiceFeignClient
 import kea.dpang.order.feign.dto.ConsumeMileageRequestDto
-import kea.dpang.order.feign.dto.MileageDto
 import kea.dpang.order.feign.dto.RefundMileageRequestDTO
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -14,12 +13,12 @@ class MileageServiceImpl(
 
     private val log = LoggerFactory.getLogger(MileageServiceImpl::class.java)
 
-    override fun getUserMileage(userId: Long): MileageDto {
+    override fun getUserMileage(userId: Long): Int {
         log.info("마일리지 조회 시작. 사용자 ID: {}", userId)
         val mileage = mileageServiceFeignClient.getUserMileage(userId, userId).body!!.data
         log.info("마일리지 조회 완료.")
 
-        return mileage
+        return mileage.mileage + mileage.personalChargedMileage
     }
 
     override fun consumeUserMileage(userId: Long, amount: Int, reason: String) {

@@ -68,14 +68,13 @@ class OrderServiceImpl(
 
         // 사용자의 마일리지를 조회한다.
         val userMileage = mileageService.getUserMileage(userId)
-        val userTotalMileage = userMileage.mileage + userMileage.personalChargedMileage
 
         // 추후 배송비가 할인 혹은 무료 배송 등을 고려하게 되면, 배송비 계산 로직 필요
         val deliveryFee = 3_000
 
         // 사용자의 마일리지가 총 비용보다 많은지 확인한다.
-        if (userTotalMileage < totalCost + deliveryFee) {
-            log.error("마일리지 부족. 사용자 ID: {}, 필요 마일리지: {}, 보유 마일리지: {}", userId, totalCost, userTotalMileage)
+        if (userMileage < totalCost + deliveryFee) {
+            log.error("마일리지 부족. 사용자 ID: {}, 필요 마일리지: {}, 보유 마일리지: {}", userId, totalCost, userMileage)
             throw InsufficientMileageException(userId)
         }
 
