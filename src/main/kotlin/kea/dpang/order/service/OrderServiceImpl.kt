@@ -11,7 +11,6 @@ import kea.dpang.order.entity.OrderStatus.ORDER_RECEIVED
 import kea.dpang.order.entity.OrderStatus.PAYMENT_COMPLETED
 import kea.dpang.order.exception.*
 import kea.dpang.order.feign.ItemServiceFeignClient
-import kea.dpang.order.feign.MileageServiceFeignClient
 import kea.dpang.order.feign.UserServiceFeignClient
 import kea.dpang.order.feign.dto.*
 import kea.dpang.order.repository.OrderRepository
@@ -25,10 +24,10 @@ import java.time.LocalDate
 @Service
 @Transactional
 class OrderServiceImpl(
+    private val mileageService: MileageService,
     private val orderRepository: OrderRepository,
     private val userServiceFeignClient: UserServiceFeignClient,
-    private val itemServiceFeignClient: ItemServiceFeignClient,
-    private val mileageServiceFeignClient: MileageServiceFeignClient
+    private val itemServiceFeignClient: ItemServiceFeignClient
 ) : OrderService {
 
     private val log = LoggerFactory.getLogger(OrderServiceImpl::class.java)
@@ -69,19 +68,14 @@ class OrderServiceImpl(
 
         log.info("총 비용: {}", totalCost)
 
-        // 사용자의 마일리지가 총 비용보다 많은지 확인한다.
-        log.info("마일리지 조회 시작. 사용자 ID: {}", userId)
-        val response = mileageServiceFeignClient.getUserMileage(userId, userId)
-
-        val mileage = response.body!!.data.mileage
-        val personalChargedMileage = response.body!!.data.personalChargedMileage
-        val userTotalMileage = mileage + personalChargedMileage
-
-        log.info("마일리지 조회 완료. 사용자 ID: {}, 총 마일리지: {} (마일리지: {}, 충전 마일리지: {})", userId, userTotalMileage, mileage, personalChargedMileage)
+        // 사용자의 마일리지를 조회한다.
+        val userMileage = mileageService.getUserMileage(userId)
+        val userTotalMileage = userMileage.mileage + userMileage.personalChargedMileage
 
         // 추후 배송비가 할인 혹은 무료 배송 등을 고려하게 되면, 배송비 계산 로직 필요
         val deliveryFee = 3_000
 
+        // 사용자의 마일리지가 총 비용보다 많은지 확인한다.
         if (userTotalMileage < totalCost + deliveryFee) {
             log.error("마일리지 부족. 사용자 ID: {}, 필요 마일리지: {}, 보유 마일리지: {}", userId, totalCost, userTotalMileage)
             throw InsufficientMileageException(userId)
@@ -109,15 +103,7 @@ class OrderServiceImpl(
         log.info("상품 재고 감소 요청 완료.")
 
         // 사용자의 마일리지를 감소시킨다.
-        val consumeMileageRequest = ConsumeMileageRequestDto(
-            userId = userId,
-            amount = totalCost + deliveryFee,
-            reason = "주문 결제"
-        )
-
-        log.info("마일리지 사용 요청 시작. 사용자 ID: {}, 사용량: {}", userId, totalCost)
-        mileageServiceFeignClient.consumeMileage(userId, consumeMileageRequest)
-        log.info("마일리지 사용 요청 완료.")
+        mileageService.consumeUserMileage(userId, totalCost + deliveryFee, "주문 결제")
 
         // 주문 상태를 '결제 완료'로 변경한다.
         order.details.forEach { orderDetail ->

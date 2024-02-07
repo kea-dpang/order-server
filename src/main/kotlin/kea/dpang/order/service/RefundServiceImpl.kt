@@ -8,7 +8,6 @@ import kea.dpang.order.entity.OrderStatus.CANCELLED
 import kea.dpang.order.entity.OrderStatus.DELIVERY_COMPLETED
 import kea.dpang.order.exception.*
 import kea.dpang.order.feign.ItemServiceFeignClient
-import kea.dpang.order.feign.MileageServiceFeignClient
 import kea.dpang.order.feign.UserServiceFeignClient
 import kea.dpang.order.feign.dto.*
 import kea.dpang.order.repository.OrderDetailRepository
@@ -23,11 +22,11 @@ import java.time.LocalDate
 @Service
 @Transactional
 class RefundServiceImpl(
+    private val mileageService: MileageService,
     private val refundRepository: RefundRepository,
     private val orderDetailRepository: OrderDetailRepository,
     private val userServiceFeignClient: UserServiceFeignClient,
-    private val itemServiceFeignClient: ItemServiceFeignClient,
-    private val mileageServiceFeignClient: MileageServiceFeignClient
+    private val itemServiceFeignClient: ItemServiceFeignClient
 ) : RefundService {
 
     private val log = LoggerFactory.getLogger(RefundServiceImpl::class.java)
@@ -80,6 +79,7 @@ class RefundServiceImpl(
         // 주문 상세 정보에 환불 정보를 연관 관계 편의 메서드를 사용하여 추가한다.
         orderDetail.assignRefund(refund)
 
+        // Todo: 확인 필요. 해당 메소드는 환불 요청이지 환불 처리는 아님.
         // 취소된 주문에 포함된 상품의 개수를 상품 서비스에 요청하여 재고를 증가시킨다.
         log.info("재고 증가 요청 시작. 상품 ID: {}, 증가량: {}", orderDetail.itemId, orderDetail.quantity)
         itemServiceFeignClient.updateStock(
@@ -95,15 +95,7 @@ class RefundServiceImpl(
         log.info("상품 재고 증가 요청 완료.")
 
         // 주문에 사용된 마일리지를 마일리지 서비스에 요청하여 사용자에게 환불한다.
-        val refundMileageInfo = RefundMileageRequestDTO(
-            userId = orderDetail.order.userId,
-            amount = orderDetail.order.productPaymentAmount,
-            reason = "주문 취소"
-        )
-
-        log.info("마일리지 환불 요청 시작. 사용자 ID: {}, 환불 금액: {}", orderDetail.order.userId, refundMileageInfo.amount)
-        mileageServiceFeignClient.refundMileage(orderDetail.order.userId, refundMileageInfo)
-        log.info("마일리지 환불 요청 완료.")
+        mileageService.refundMileage(orderDetail.order.userId, orderDetail.order.productPaymentAmount, "주문 취소")
 
         log.info("환불 요청 완료. 주문 상세 ID: {}", orderDetailId)
     }
@@ -292,15 +284,7 @@ class RefundServiceImpl(
             val orderDetail = refund.orderDetail
 
             // 주문에 사용된 마일리지를 마일리지 서비스에 요청하여 사용자에게 환불한다.
-            val refundMileageInfo = RefundMileageRequestDTO(
-                userId = orderDetail.order.userId,
-                amount = orderDetail.purchasePrice,
-                reason = "주문 취소"
-            )
-
-            log.info("마일리지 환불 요청 시작. 사용자 ID: {}, 환불 금액: {}", orderDetail.order.userId, orderDetail.purchasePrice)
-            mileageServiceFeignClient.refundMileage(orderDetail.order.userId, refundMileageInfo)
-            log.info("마일리지 환불 요청 완료.")
+            mileageService.refundMileage(orderDetail.order.userId, orderDetail.purchasePrice, "주문 취소")
 
             // 취소된 주문에 포함된 상품의 개수를 상품 서비스에 요청하여 재고를 증가시킨다.
             log.info("재고 증가 요청 시작. 상품 ID: {}, 증가량: {}", orderDetail.itemId, orderDetail.quantity)
