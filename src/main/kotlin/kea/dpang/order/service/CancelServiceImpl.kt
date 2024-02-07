@@ -174,7 +174,7 @@ class CancelServiceImpl(
      * @param items 상품 정보 목록
      * @return 변환된 CancelDto 객체
      */
-    fun convertCancelEntityToDto(cancel: Cancel, users: Map<Long, UserDto>, items: Map<Long, ItemInfoDto>): CancelDto {
+    private fun convertCancelEntityToDto(cancel: Cancel, users: Map<Long, UserDto>, items: Map<Long, ItemInfoDto>): CancelDto {
         val orderDetail = cancel.orderDetail
         val product = items.getValue(orderDetail.itemId)
         val user = users.getValue(orderDetail.order.userId)

@@ -25,7 +25,7 @@ import java.time.LocalDate
 class RefundServiceImpl(
     private val refundRepository: RefundRepository,
     private val orderDetailRepository: OrderDetailRepository,
-    val userServiceFeignClient: UserServiceFeignClient,
+    private val userServiceFeignClient: UserServiceFeignClient,
     private val itemServiceFeignClient: ItemServiceFeignClient,
     private val mileageServiceFeignClient: MileageServiceFeignClient
 ) : RefundService {
