@@ -239,7 +239,7 @@ class RefundServiceImpl(
      * @param items 환불 목록에 포함된 상품 정보
      * @return 변환된 RefundDto 객체
      */
-    fun convertRefundEntityToDto(refund: Refund, users: Map<Long, UserDto>, items: Map<Long, ItemInfoDto>): RefundDto {
+    private fun convertRefundEntityToDto(refund: Refund, users: Map<Long, UserDto>, items: Map<Long, ItemInfoDto>): RefundDto {
         val orderDetail = refund.orderDetail
         val order = orderDetail.order
 
