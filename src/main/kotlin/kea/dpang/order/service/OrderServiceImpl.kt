@@ -10,9 +10,10 @@ import kea.dpang.order.entity.OrderStatus
 import kea.dpang.order.entity.OrderStatus.ORDER_RECEIVED
 import kea.dpang.order.entity.OrderStatus.PAYMENT_COMPLETED
 import kea.dpang.order.exception.*
-import kea.dpang.order.feign.ItemServiceFeignClient
-import kea.dpang.order.feign.UserServiceFeignClient
-import kea.dpang.order.feign.dto.*
+import kea.dpang.order.feign.dto.ItemInfoDto
+import kea.dpang.order.feign.dto.UpdateStockListRequestDto
+import kea.dpang.order.feign.dto.UpdateStockRequestDto
+import kea.dpang.order.feign.dto.UserDto
 import kea.dpang.order.repository.OrderRepository
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
@@ -24,10 +25,10 @@ import java.time.LocalDate
 @Service
 @Transactional
 class OrderServiceImpl(
+    private val itemService: ItemService,
     private val mileageService: MileageService,
-    private val orderRepository: OrderRepository,
-    private val userServiceFeignClient: UserServiceFeignClient,
-    private val itemServiceFeignClient: ItemServiceFeignClient
+    private val userService: UserService,
+    private val orderRepository: OrderRepository
 ) : OrderService {
 
     private val log = LoggerFactory.getLogger(OrderServiceImpl::class.java)
@@ -38,12 +39,9 @@ class OrderServiceImpl(
         // OrderRequestDto에서 주문 정보를 추출한다.
         val productInfoList = orderRequest.orderIteminfo
 
-        // 상품 서비스로부터 상품 정보를 한 번에 조회한다.
+        // 상품 정보를 조회한다.
         val productIds = productInfoList.map { it.itemId }
-
-        log.info("상품 정보 조회 시작. 상품 ID: {}", productIds)
-        val products = itemServiceFeignClient.getItemInfos(productIds).body!!.data
-        log.info("상품 정보 조회 완료.")
+        val products = itemService.getItemInfos(productIds)
 
         var totalCost = 0
         for (productInfo in productInfoList) {
@@ -70,14 +68,13 @@ class OrderServiceImpl(
 
         // 사용자의 마일리지를 조회한다.
         val userMileage = mileageService.getUserMileage(userId)
-        val userTotalMileage = userMileage.mileage + userMileage.personalChargedMileage
 
         // 추후 배송비가 할인 혹은 무료 배송 등을 고려하게 되면, 배송비 계산 로직 필요
         val deliveryFee = 3_000
 
         // 사용자의 마일리지가 총 비용보다 많은지 확인한다.
-        if (userTotalMileage < totalCost + deliveryFee) {
-            log.error("마일리지 부족. 사용자 ID: {}, 필요 마일리지: {}, 보유 마일리지: {}", userId, totalCost, userTotalMileage)
+        if (userMileage < totalCost + deliveryFee) {
+            log.error("마일리지 부족. 사용자 ID: {}, 필요 마일리지: {}, 보유 마일리지: {}", userId, totalCost, userMileage)
             throw InsufficientMileageException(userId)
         }
 
@@ -89,18 +86,16 @@ class OrderServiceImpl(
         log.info("주문 정보 저장 완료. 주문 ID: {}", order.id)
 
         // 주문이 성공적으로 처리되면, 주문 상품의 재고를 감소시키고,
-        val dto = UpdateStockListRequestDto(
-            productInfoList.map { productInfo ->
-                UpdateStockRequestDto(
-                    itemId = productInfo.itemId,
-                    quantity = -productInfo.quantity
-                )
-            }
+        itemService.updateStockInfo(
+            UpdateStockListRequestDto(
+                productInfoList.map { productInfo ->
+                    UpdateStockRequestDto(
+                        itemId = productInfo.itemId,
+                        quantity = -productInfo.quantity
+                    )
+                }
+            )
         )
-
-        log.info("상품 재고 감소 요청 시작. 요청 정보: {}", dto)
-        itemServiceFeignClient.updateStock(dto)
-        log.info("상품 재고 감소 요청 완료.")
 
         // 사용자의 마일리지를 감소시킨다.
         mileageService.consumeUserMileage(userId, totalCost + deliveryFee, "주문 결제")
@@ -146,12 +141,9 @@ class OrderServiceImpl(
 
         order.updateRecipient(orderRecipient)
 
-        // 상품 서비스로부터 상품 정보를 한 번에 조회한다.
+        // 상품 정보를 조회한다.
         val itemIds = orderRequestDto.orderIteminfo.map { it.itemId }
-
-        log.info("상품 정보 조회 시작. 상품 ID: {}", itemIds)
-        val itemList = itemServiceFeignClient.getItemInfos(itemIds).body!!.data
-        log.info("상품 정보 조회 완료.")
+        val itemList = itemService.getItemInfos(itemIds)
 
         // 주문 상세 정보를 생성하고 주문 객체에 설정한다.
         order.details = orderRequestDto.orderIteminfo.map { orderIteminfo ->
@@ -269,20 +261,16 @@ class OrderServiceImpl(
         log.info("주문 목록 조회 완료. 조회된 주문 건수: {}", orders.totalElements)
 
         // 주문 목록에 포함된 상품 ID와 사용자 ID를 추출한다.
-        val itemIds = orders.content.flatMap { it.details }.map { it.itemId }.distinct()
-        val userIds = orders.content.map { it.userId }.distinct()
+        val itemIds = orders.content.flatMap { it.details.map { detail -> detail.itemId } }.toSet().toList()
+        val userIds = orders.content.map { it.userId }.toSet().toList()
 
         log.info("주문 목록에 포함된 상품 ID: {}, 사용자 ID: {}", itemIds, userIds)
 
         // 주문 목록에 포함된 상품 정보를 조회한다.
-        log.info("상품 정보 조회 시작. 상품 ID: {}", itemIds)
-        val items = itemServiceFeignClient.getItemInfos(itemIds).body!!.data.associateBy { it.id }
-        log.info("상품 정보 조회 완료.")
+        val items = itemService.getItemInfos(itemIds).associateBy { it.id }
 
         // 주문 목록에 포함된 사용자 정보를 조회한다.
-        log.info("사용자 정보 조회 시작. 사용자 ID: {}", userIds)
-        val users = userServiceFeignClient.getUserInfos(userIds).body!!.data.associateBy { it.userId }
-        log.info("사용자 정보 조회 완료.")
+        val users = userService.getUserInfos(userIds).associateBy { it.userId }
 
         return orders.map { convertOrderEntityToDto(it, users, items) }
     }
@@ -326,12 +314,9 @@ class OrderServiceImpl(
      * @return 변환된 OrderDto 객체
      */
     private fun convertOrderEntityToDto(order: Order): OrderDto {
-        // 상품 서비스로부터 상품 정보를 한 번에 조회한다.
+        // 상품 서비스로부터 상품 정보를 조회한다.
         val itemIds = order.details.map { it.itemId }
-
-        log.info("상품 정보 조회 시작. 상품 ID: {}", itemIds)
-        val itemList = itemServiceFeignClient.getItemInfos(itemIds).body!!.data
-        log.info("상품 정보 조회 완료.")
+        val itemList = itemService.getItemInfos(itemIds)
 
         // 상품 정보 조회 및 DTO 설정
         val productList = order.details.map { orderDetail ->
@@ -400,10 +385,8 @@ class OrderServiceImpl(
         val orderDetail = order.details.find { it.id == orderDetailId }
             ?: throw OrderDetailNotFoundException(orderDetailId)
 
-        // 상품 서비스로부터 상품 정보 조회
-        log.info("상품 정보 조회 시작. 상품 ID: {}", orderDetail.itemId)
-        val productInfo = itemServiceFeignClient.getItemInfo(orderDetail.itemId).body!!.data
-        log.info("상품 정보 조회 완료.")
+        // 상품 정보 조회
+        val productInfo = itemService.getItemInfo(orderDetail.itemId)
 
         // OrderedProductInfo로 변환
         val orderedProductInfo = OrderedProductInfo(
