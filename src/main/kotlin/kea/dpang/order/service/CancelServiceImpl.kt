@@ -135,6 +135,11 @@ class CancelServiceImpl(
 
         log.info("취소 목록 조회 완료. 조회된 취소 건수: {}", cancels.totalElements)
 
+        // 취소 목록이 비어있는 경우 빈 페이지를 반환한다.
+        if (cancels.isEmpty) {
+            return Page.empty()
+        }
+
         // 취소 목록에 포함된 사용자 ID를 추출한다.
         val userIds = cancels.map { it.orderDetail.order.userId }.distinct()
         log.info("취소 목록에 포함된 사용자 ID 목록: {}", userIds)

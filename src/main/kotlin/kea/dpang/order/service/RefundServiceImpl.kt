@@ -187,6 +187,11 @@ class RefundServiceImpl(
         val refunds = refundRepository.findRefunds(startDate, endDate, refundReason, userId, pageable)
         log.info("환불 목록 조회 완료. 조회된 환불 수: {}", refunds.size)
 
+        // 환불 목록이 비어있는 경우, 빈 페이지를 반환한다.
+        if (refunds.isEmpty) {
+            return Page.empty()
+        }
+
         // 환불 목록에 포함된 사용자 ID를 추출한다.
         val userIds = refunds.map { it.orderDetail.order.userId }.distinct()
         log.info("환불 목록에 포함된 사용자 ID: {}", userIds)
