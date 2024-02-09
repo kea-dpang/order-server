@@ -43,28 +43,9 @@ class OrderServiceImpl(
         val productIds = productInfoList.map { it.itemId }
         val products = itemService.getItemInfos(productIds)
 
-        var totalCost = 0
-        for (productInfo in productInfoList) {
-            val productId = productInfo.itemId
-            val quantity = productInfo.quantity
-
-            // 상품 정보를 찾는다.
-            val product = products.find { it.id == productId }
-
-            if (product == null) {
-                log.error("상품 정보 없음. 상품 ID: {}", productId)
-                throw ProductNotFoundException(productId)
-            }
-
-            if (product.quantity < quantity) {
-                log.error("재고 부족. 상품 ID: {}, 요청량: {}, 재고량: {}", productId, quantity, product.quantity)
-                throw InsufficientStockException(productId)
-            }
-
-            totalCost += product.price * quantity
-        }
-
-        log.info("총 비용: {}", totalCost)
+        // 상품의 총 비용을 계산한다.
+        val itemCost = calculateItemTotalCost(productInfoList, products)
+        log.info("총 비용: {}", itemCost)
 
         // 사용자의 마일리지를 조회한다.
         val userMileage = mileageService.getUserMileage(userId)
@@ -73,13 +54,10 @@ class OrderServiceImpl(
         val deliveryFee = 3_000
 
         // 사용자의 마일리지가 총 비용보다 많은지 확인한다.
-        if (userMileage < totalCost + deliveryFee) {
-            log.error("마일리지 부족. 사용자 ID: {}, 필요 마일리지: {}, 보유 마일리지: {}", userId, totalCost, userMileage)
-            throw InsufficientMileageException(userId)
-        }
+        checkUserHasEnoughMileage(userId, itemCost + deliveryFee, userMileage)
 
         // 주문 정보를 생성한다.
-        val order = createOrder(userId, orderRequest, totalCost)
+        val order = createOrder(userId, orderRequest, itemCost)
 
         // 주문 정보를 데이터베이스에 저장한다.
         orderRepository.save(order)
@@ -98,17 +76,68 @@ class OrderServiceImpl(
         )
 
         // 사용자의 마일리지를 감소시킨다.
-        mileageService.consumeUserMileage(userId, totalCost + deliveryFee, "주문 결제")
+        mileageService.consumeUserMileage(userId, itemCost + deliveryFee, "주문 결제")
 
         // 주문 상태를 '결제 완료'로 변경한다.
-        order.details.forEach { orderDetail ->
-            orderDetail.status = PAYMENT_COMPLETED
-        }
+        order.details.forEach { it.status = PAYMENT_COMPLETED }
 
         log.info("주문 완료. 주문 ID: {}", order.id)
 
         // 저장된 주문 정보를 반환한다.
         return convertOrderEntityToDto(order)
+    }
+
+    /**
+     * 상품 정보를 사용하여 주문 상품의 총 비용을 계산하는 메서드
+     *
+     * @param productInfoList 주문 상품 정보 목록
+     * @param products 상품 정보 목록
+     * @return 주문의 총 비용
+     */
+    private fun calculateItemTotalCost(productInfoList: List<ItemInfo>, products: List<ItemInfoDto>): Int {
+        var totalCost = 0
+
+        for (productInfo in productInfoList) {
+            val productId = productInfo.itemId
+            val quantity = productInfo.quantity
+
+            // 상품 정보를 찾는다.
+            val product = products.find { it.id == productId }
+                ?: throw ProductNotFoundException(productId) // 상품 정보를 상위 메소드에서 조회 하기 때문에 이 예외는 거의 발생하지 않는다.
+
+            checkStockIsEnough(product, quantity)
+
+            totalCost += product.price * quantity
+        }
+
+        return totalCost
+    }
+
+    /**
+     * 상품의 재고가 충분한지 확인하는 메서드
+     *
+     * @param product 상품 정보
+     * @param quantity 주문 수량
+     */
+    private fun checkStockIsEnough(product: ItemInfoDto, quantity: Int) {
+        if (product.quantity < quantity) {
+            log.error("재고 부족. 상품 ID: {}, 요청량: {}, 재고량: {}", product.id, quantity, product.quantity)
+            throw InsufficientStockException(product.id)
+        }
+    }
+
+    /**
+     * 사용자가 충분한 마일리지를 가지고 있는지 확인하는 메서드
+     *
+     * @param userId 사용자 ID
+     * @param totalCost 주문의 총 비용
+     * @param userMileage 사용자의 마일리지
+     */
+    private fun checkUserHasEnoughMileage(userId: Long, totalCost: Int, userMileage: Int) {
+        if (userMileage < totalCost) {
+            log.error("마일리지 부족. 사용자 ID: {}, 필요 마일리지: {}, 보유 마일리지: {}", userId, totalCost, userMileage)
+            throw InsufficientMileageException(userId)
+        }
     }
 
     /**
@@ -142,7 +171,7 @@ class OrderServiceImpl(
         order.updateRecipient(orderRecipient)
 
         // 상품 정보를 조회한다.
-        val itemIds = orderRequestDto.orderIteminfo.map { it.itemId }
+        val itemIds = orderRequestDto.orderIteminfo.map { it.itemId }.distinct()
         val itemList = itemService.getItemInfos(itemIds)
 
         // 주문 상세 정보를 생성하고 주문 객체에 설정한다.
@@ -266,8 +295,8 @@ class OrderServiceImpl(
         }
 
         // 주문 목록에 포함된 상품 ID와 사용자 ID를 추출한다.
-        val itemIds = orders.content.flatMap { it.details.map { detail -> detail.itemId } }.toSet().toList()
-        val userIds = orders.content.map { it.userId }.toSet().toList()
+        val itemIds = orders.content.flatMap { it.details.map { detail -> detail.itemId } }.distinct()
+        val userIds = orders.content.map { it.userId }.distinct()
 
         log.info("주문 목록에 포함된 상품 ID: {}, 사용자 ID: {}", itemIds, userIds)
 
@@ -290,12 +319,18 @@ class OrderServiceImpl(
      */
     private fun convertOrderEntityToDto(
         order: Order,
-        users: Map<Long, UserDto>,
-        items: Map<Long, ItemInfoDto>
+        users: Map<Long, UserDto>? = null,
+        items: Map<Long, ItemInfoDto>? = null
     ): OrderDto {
-        val productList = order.details.map { orderDetail ->
-            val productInfo = items.getValue(orderDetail.itemId)
+        // 상품 정보가 넘어오지 않았다면 상품 서비스에 요청하여 상품 정보를 조회한다.
+        val itemList = items ?: run {
+            val itemIds = order.details.map { it.itemId }.distinct()
+            itemService.getItemInfos(itemIds).associateBy { it.id }
+        }
 
+        // 주문 상품 정보를 변환한다.
+        val productList = order.details.map { orderDetail ->
+            val productInfo = itemList.getValue(orderDetail.itemId)
             OrderedProductInfo(
                 orderDetailId = orderDetail.id!!,
                 orderStatus = orderDetail.status,
@@ -304,50 +339,17 @@ class OrderServiceImpl(
             )
         }
 
-        return OrderDto(
-            orderId = order.id!!,
-            orderDate = order.date!!.toLocalDate(),
-            productList = productList,
-            orderer = users.getValue(order.userId).name
-        )
-    }
-
-    /**
-     * Order 엔티티를 OrderDto로 변환하는 메서드
-     *
-     * @param order 변환할 Order 엔티티 객체
-     * @return 변환된 OrderDto 객체
-     */
-    private fun convertOrderEntityToDto(order: Order): OrderDto {
-        // 상품 서비스로부터 상품 정보를 조회한다.
-        val itemIds = order.details.map { it.itemId }
-        val itemList = itemService.getItemInfos(itemIds)
-
-        // 상품 정보 조회 및 DTO 설정
-        val productList = order.details.map { orderDetail ->
-
-            // 상품 정보를 찾는다.
-            val productInfo = itemList.find { it.id == orderDetail.itemId }
-
-            if (productInfo == null) {
-                log.error("상품 정보 없음. 상품 ID: {}", orderDetail.itemId)
-                throw ProductNotFoundException(orderDetail.itemId)
-            }
-
-            OrderedProductInfo(
-                orderDetailId = orderDetail.id!!,
-                orderStatus = orderDetail.status,
-                productInfoDto = ProductInfoDto.from(productInfo),
-                productQuantity = orderDetail.quantity
-            )
+        // 사용자 정보가 넘어오지 않았다면 사용자 서비스에 요청하여 사용자 정보를 조회한다.
+        val orderer = users?.getValue(order.userId)?.name ?: run {
+            val userId = order.userId
+            userService.getUserInfo(userId).name
         }
 
-        // OrderDto로 변환 및 반환
         return OrderDto(
             orderId = order.id!!,
             orderDate = order.date!!.toLocalDate(),
             productList = productList,
-            orderer = order.userId.toString()
+            orderer = orderer
         )
     }
 
