@@ -4,6 +4,7 @@ import kea.dpang.order.base.BaseResponse
 import kea.dpang.order.base.SuccessResponse
 import kea.dpang.order.dto.OrderedProductInfo
 import kea.dpang.order.dto.order.*
+import kea.dpang.order.dto.refund.RefundOrderRequestDto
 import kea.dpang.order.entity.OrderStatus
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -84,4 +85,27 @@ interface OrderController {
      * @return 조회된 주문 상세 정보
      */
     fun getOrderDetail(orderId: Long, orderDetailId: Long): ResponseEntity<SuccessResponse<OrderedProductInfo>>
+
+    /**
+     * 주문 취소 요청 - 사용자
+     *
+     * @param orderId 주문 ID
+     * @param orderDetailId 주문 상세 ID
+     * @return 취소 결과
+     */
+    fun cancelOrder(orderId: Long, orderDetailId: Long): ResponseEntity<BaseResponse>
+
+    /**
+     * 주문 환불 요청 - 사용자
+     *
+     * @param orderId 주문 ID
+     * @param orderDetailId 주문 상세 ID
+     * @param refundOrderRequest 환불 요청 정보
+     * @return 환불 결과
+     */
+    fun refundOrder(
+        orderId: Long,
+        orderDetailId: Long,
+        refundOrderRequest: RefundOrderRequestDto
+    ): ResponseEntity<BaseResponse>
 }

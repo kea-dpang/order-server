@@ -1,6 +1,5 @@
 package kea.dpang.order.controller
 
-import kea.dpang.order.base.BaseResponse
 import kea.dpang.order.base.SuccessResponse
 import kea.dpang.order.dto.cancel.CancelDto
 import org.springframework.data.domain.Page
@@ -9,14 +8,6 @@ import org.springframework.http.ResponseEntity
 import java.time.LocalDate
 
 interface CancelController {
-
-    /**
-     * 주문 취소 요청 - 사용자
-     *
-     * @param orderDetailId 주문 상세 ID
-     * @return 취소 결과
-     */
-    fun cancelOrder(orderDetailId: Long): ResponseEntity<BaseResponse>
 
     /**
      * 주문 취소 상세 조회
