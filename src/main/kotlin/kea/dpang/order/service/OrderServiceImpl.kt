@@ -260,6 +260,11 @@ class OrderServiceImpl(
 
         log.info("주문 목록 조회 완료. 조회된 주문 건수: {}", orders.totalElements)
 
+        // 주문 목록이 비어있으면 빈 페이지를 반환한다.
+        if (orders.isEmpty) {
+            return Page.empty(pageable)
+        }
+
         // 주문 목록에 포함된 상품 ID와 사용자 ID를 추출한다.
         val itemIds = orders.content.flatMap { it.details.map { detail -> detail.itemId } }.toSet().toList()
         val userIds = orders.content.map { it.userId }.toSet().toList()
