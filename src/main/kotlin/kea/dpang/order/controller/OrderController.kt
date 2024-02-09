@@ -3,10 +3,7 @@ package kea.dpang.order.controller
 import kea.dpang.order.base.BaseResponse
 import kea.dpang.order.base.SuccessResponse
 import kea.dpang.order.dto.OrderedProductInfo
-import kea.dpang.order.dto.order.OrderDetailDto
-import kea.dpang.order.dto.order.OrderDto
-import kea.dpang.order.dto.order.OrderRequestDto
-import kea.dpang.order.dto.order.UpdateOrderStatusRequestDto
+import kea.dpang.order.dto.order.*
 import kea.dpang.order.entity.OrderStatus
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -25,7 +22,7 @@ interface OrderController {
      * @param orderRequest 배송 요청 정보
      * @return 주문 결과
      */
-    fun placeOrder(userId: Long, orderRequest: OrderRequestDto): ResponseEntity<SuccessResponse<OrderDto>>
+    fun placeOrder(userId: Long, orderRequest: OrderRequestDto): ResponseEntity<SuccessResponse<OrderResponseDto>>
 
     /**
      * 주문 상태 수정 - 관리자

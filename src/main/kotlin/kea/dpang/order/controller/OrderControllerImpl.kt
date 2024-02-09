@@ -6,10 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import kea.dpang.order.base.BaseResponse
 import kea.dpang.order.base.SuccessResponse
 import kea.dpang.order.dto.OrderedProductInfo
-import kea.dpang.order.dto.order.OrderDetailDto
-import kea.dpang.order.dto.order.OrderDto
-import kea.dpang.order.dto.order.OrderRequestDto
-import kea.dpang.order.dto.order.UpdateOrderStatusRequestDto
+import kea.dpang.order.dto.order.*
 import kea.dpang.order.entity.OrderStatus
 import kea.dpang.order.service.OrderService
 import org.springframework.data.domain.Page
@@ -30,7 +27,7 @@ class OrderControllerImpl(private val orderService: OrderService) : OrderControl
     override fun placeOrder(
         @Parameter(description = "사용자 ID") @RequestHeader("X-DPANG-CLIENT-ID") userId: Long,
         @Parameter(description = "주문 요청 정보") @RequestBody orderRequest: OrderRequestDto
-    ): ResponseEntity<SuccessResponse<OrderDto>> {
+    ): ResponseEntity<SuccessResponse<OrderResponseDto>> {
 
         val orderResult = orderService.placeOrder(userId, orderRequest)
         return ResponseEntity.ok(SuccessResponse(HttpStatus.OK.value(), "주문이 완료되었습니다.", orderResult))

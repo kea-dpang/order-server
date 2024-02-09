@@ -21,6 +21,8 @@ class MileageServiceImpl(
         return mileage.mileage + mileage.personalChargedMileage
     }
 
+    override fun getUserMileageInfo(userId: Long) = mileageServiceFeignClient.getUserMileage(userId, userId).body!!.data
+
     override fun consumeUserMileage(userId: Long, amount: Int, reason: String) {
         val consumeMileageRequest = ConsumeMileageRequestDto(
             userId = userId,
