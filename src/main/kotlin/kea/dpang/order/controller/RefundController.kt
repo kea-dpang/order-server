@@ -5,7 +5,7 @@ import kea.dpang.order.base.SuccessResponse
 import kea.dpang.order.dto.refund.RefundDetailDto
 import kea.dpang.order.dto.refund.RefundDto
 import kea.dpang.order.dto.refund.RefundStatusDto
-import kea.dpang.order.entity.RefundReason
+import kea.dpang.order.entity.RefundStatus
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.http.ResponseEntity
@@ -26,7 +26,7 @@ interface RefundController {
      *
      * @param startDate 환불 요청 시작 날짜
      * @param endDate 환불 요청 종료 날짜
-     * @param refundReason 환불 사유
+     * @param refundStatus 환불 상태
      * @param userId 사용자 식별자
      * @param pageable 페이지네이션 정보
      * @return 조회된 환불 목록
@@ -34,7 +34,7 @@ interface RefundController {
     fun getRefundList(
         startDate: LocalDate?,
         endDate: LocalDate?,
-        refundReason: RefundReason?,
+        refundStatus: RefundStatus?,
         userId: Long?,
         pageable: Pageable
     ): ResponseEntity<SuccessResponse<Page<RefundDto>>>

@@ -2,10 +2,7 @@ package kea.dpang.order.repository
 
 import com.querydsl.core.BooleanBuilder
 import com.querydsl.jpa.impl.JPAQueryFactory
-import kea.dpang.order.entity.QOrderDetail
-import kea.dpang.order.entity.QRefund
-import kea.dpang.order.entity.RefundReason
-import kea.dpang.order.entity.Refund
+import kea.dpang.order.entity.*
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Repository
@@ -25,12 +22,12 @@ class RefundRepositoryCustomImpl(
     override fun findRefunds(
         startDate: LocalDate?,
         endDate: LocalDate?,
-        refundReason: RefundReason?,
+        refundStatus: RefundStatus?,
         userId: Long?,
         pageable: Pageable
     ): Page<Refund> {
         val builder = BooleanBuilder()
-        refundReason?.let { builder.and(QRefund.refund.refundReason.eq(it)) }
+        refundStatus?.let { builder.and(QRefund.refund.refundStatus.eq(it)) }
         return findEntities(startDate, endDate, userId, pageable, builder)
     }
 }

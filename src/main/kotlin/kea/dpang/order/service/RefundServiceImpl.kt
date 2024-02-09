@@ -7,7 +7,6 @@ import kea.dpang.order.entity.OrderStatus.CANCELLED
 import kea.dpang.order.entity.OrderStatus.DELIVERY_COMPLETED
 import kea.dpang.order.entity.Recall
 import kea.dpang.order.entity.Refund
-import kea.dpang.order.entity.RefundReason
 import kea.dpang.order.entity.RefundStatus
 import kea.dpang.order.exception.*
 import kea.dpang.order.feign.dto.ItemInfoDto
@@ -155,14 +154,14 @@ class RefundServiceImpl(
     override fun getRefundList(
         startDate: LocalDate?,
         endDate: LocalDate?,
-        refundReason: RefundReason?,
+        refundStatus: RefundStatus?,
         userId: Long?,
         pageable: Pageable
     ): Page<RefundDto> {
-        log.info("환불 목록 검색 시작. 시작 날짜: {}, 종료 날짜: {}, 환불 사유: {}, 사용자 ID: {}, 페이지 정보: {}", startDate, endDate, refundReason, userId, pageable)
+        log.info("환불 목록 조회 시작. 시작 날짜: {}, 종료 날짜: {}, 환불 상태: {}, 사용자 ID: {}, 페이지 정보: {}", startDate, endDate, refundStatus, userId, pageable)
 
         // 환불 목록을 조회한다.
-        val refunds = refundRepository.findRefunds(startDate, endDate, refundReason, userId, pageable)
+        val refunds = refundRepository.findRefunds(startDate, endDate, refundStatus, userId, pageable)
         log.info("환불 목록 조회 완료. 조회된 환불 수: {}", refunds.size)
 
         // 환불 목록이 비어있는 경우, 빈 페이지를 반환한다.
