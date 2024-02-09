@@ -118,32 +118,6 @@ class RefundServiceImpl(
      * @param refund 변환할 Refund 엔티티 객체
      * @return 변환된 RefundDto 객체
      */
-    fun convertRefundEntityToDto(refund: Refund): RefundDto {
-        log.info("환불 엔티티를 DTO로 변환 시작. 환불 ID: {}", refund.id)
-
-        // 환불 요청한 주문의 상세 정보를 얻는다.
-        val orderDetail = refund.orderDetail
-        val order = orderDetail.order
-
-        // 환불 요청한 사용자 정보를 얻는다.
-        val userId = order.userId
-        val user = userService.getUserInfo(userId)
-
-        // 환불 요청한 주문의 상품 정보를 얻는다.
-        val itemId = orderDetail.itemId
-        val productInfo = itemService.getItemInfo(itemId)
-
-        // 상품 정보를 DTO로 변환한다.
-        val productInfoDto = ProductInfoDto.from(productInfo)
-        return createRefundDto(refund, user, productInfoDto)
-    }
-
-    /**
-     * Refund 엔티티를 RefundDto로 변환하는 메서드
-     *
-     * @param refund 변환할 Refund 엔티티 객체
-     * @return 변환된 RefundDto 객체
-     */
     fun createRefundDto(
         refund: Refund,
         user: UserDto,
@@ -218,16 +192,23 @@ class RefundServiceImpl(
      * @param items 환불 목록에 포함된 상품 정보
      * @return 변환된 RefundDto 객체
      */
-    private fun convertRefundEntityToDto(refund: Refund, users: Map<Long, UserDto>, items: Map<Long, ItemInfoDto>): RefundDto {
+    private fun convertRefundEntityToDto(
+        refund: Refund,
+        users: Map<Long, UserDto>? = null,
+        items: Map<Long, ItemInfoDto>? = null
+    ): RefundDto {
+        log.info("환불 엔티티를 DTO로 변환 시작. 환불 ID: {}", refund.id)
+
         val orderDetail = refund.orderDetail
         val order = orderDetail.order
 
-        // 환불 요청한 사용자 정보를 얻는다.
-        val userId = order.userId
-        val user = users.getValue(userId)
+        // 사용자 정보가 넘어오지 않았다면 사용자 서비스에 요청하여 사용자 정보를 얻는다.
+        val user = users?.get(order.userId) ?: userService.getUserInfo(order.userId)
 
-        // 환불 요청한 주문의 상세 정보를 얻는다.
-        val productInfo = items.getValue(orderDetail.itemId)
+        // 상품 정보가 넘어오지 않았다면 상품 서비스에 요청하여 상품 정보를 얻는다.
+        val productInfo = items?.get(orderDetail.itemId) ?: itemService.getItemInfo(orderDetail.itemId)
+
+        // 상품 정보를 DTO로 변환한다.
         val productInfoDto = ProductInfoDto.from(productInfo)
 
         return createRefundDto(refund, user, productInfoDto)
