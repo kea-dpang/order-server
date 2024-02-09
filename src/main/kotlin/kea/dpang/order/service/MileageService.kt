@@ -1,6 +1,16 @@
 package kea.dpang.order.service
 
+import kea.dpang.order.feign.dto.MileageDto
+
 interface MileageService {
+
+    /**
+     * 사용자의 총 마일리지를 조회하는 메소드
+     *
+     * @param userId 마일리지 정보를 조회할 사용자의 ID.
+     * @return 사용자의 총 마일리지
+     */
+    fun getUserMileage(userId: Long): Int
 
     /**
      * 사용자의 마일리지 정보를 조회하는 메소드
@@ -8,7 +18,7 @@ interface MileageService {
      * @param userId 마일리지 정보를 조회할 사용자의 ID.
      * @return 조회된 마일리지 정보.
      */
-    fun getUserMileage(userId: Long): Int
+    fun getUserMileageInfo(userId: Long): MileageDto
 
     /**
      * 사용자의 마일리지를 사용하는 메소드

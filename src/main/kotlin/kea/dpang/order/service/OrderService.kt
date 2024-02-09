@@ -1,10 +1,7 @@
 package kea.dpang.order.service
 
 import kea.dpang.order.dto.OrderedProductInfo
-import kea.dpang.order.dto.order.OrderDetailDto
-import kea.dpang.order.dto.order.OrderDto
-import kea.dpang.order.dto.order.OrderRequestDto
-import kea.dpang.order.dto.order.UpdateOrderStatusRequestDto
+import kea.dpang.order.dto.order.*
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import java.time.LocalDate
@@ -17,7 +14,7 @@ interface OrderService {
      * @param orderRequest 주문 요청 정보
      * @return 주문 결과
      */
-    fun placeOrder(userId: Long, orderRequest: OrderRequestDto): OrderDto
+    fun placeOrder(userId: Long, orderRequest: OrderRequestDto): OrderResponseDto
 
     /**
      * 주문 상태 수정 - 관리자

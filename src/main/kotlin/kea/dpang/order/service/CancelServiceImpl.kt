@@ -100,27 +100,6 @@ class CancelServiceImpl(
         return convertCancelEntityToDto(cancel)
     }
 
-    /**
-     * Cancel 엔티티를 CancelDto로 변환하는 메서드
-     *
-     * @param cancel 변환할 Cancel 엔티티 객체
-     * @return 변환된 CancelDto 객체
-     */
-    private fun convertCancelEntityToDto(cancel: Cancel): CancelDto {
-        // 주문 상세 정보를 조회한다.
-        val orderDetail = cancel.orderDetail
-
-        // 상품 정보를 조회한다.
-        val itemId = orderDetail.itemId
-        val product = itemService.getItemInfo(itemId)
-
-        // 사용자 정보를 조회한다.
-        val userId = orderDetail.order.userId
-        val user = userService.getUserInfo(userId)
-
-        return CancelDto(cancel, user.name, ProductInfoDto.from(product))
-    }
-
     @Transactional(readOnly = true)
     override fun getCancelList(
         startDate: LocalDate?,
@@ -166,10 +145,18 @@ class CancelServiceImpl(
      * @param items 상품 정보 목록
      * @return 변환된 CancelDto 객체
      */
-    private fun convertCancelEntityToDto(cancel: Cancel, users: Map<Long, UserDto>, items: Map<Long, ItemInfoDto>): CancelDto {
+    private fun convertCancelEntityToDto(
+        cancel: Cancel,
+        users: Map<Long, UserDto>? = null,
+        items: Map<Long, ItemInfoDto>? = null
+    ): CancelDto {
         val orderDetail = cancel.orderDetail
-        val product = items.getValue(orderDetail.itemId)
-        val user = users.getValue(orderDetail.order.userId)
+
+        // 상품 정보가 넘어오지 않았다면 상품 서비스에 요청하여 상품 정보를 얻는다.
+        val product = items?.get(orderDetail.itemId) ?: itemService.getItemInfo(orderDetail.itemId)
+
+        // 사용자 정보가 넘어오지 않았다면 사용자 서비스에 요청하여 사용자 정보를 얻는다.
+        val user = users?.get(orderDetail.order.userId) ?: userService.getUserInfo(orderDetail.order.userId)
 
         return CancelDto(cancel, user.name, ProductInfoDto.from(product))
     }

@@ -33,7 +33,7 @@ class OrderServiceImpl(
 
     private val log = LoggerFactory.getLogger(OrderServiceImpl::class.java)
 
-    override fun placeOrder(userId: Long, orderRequest: OrderRequestDto): OrderDto {
+    override fun placeOrder(userId: Long, orderRequest: OrderRequestDto): OrderResponseDto {
         log.info("주문 시작. 사용자 ID: {}, 주문 정보: {}", userId, orderRequest)
 
         // OrderRequestDto에서 주문 정보를 추출한다.
@@ -83,8 +83,14 @@ class OrderServiceImpl(
 
         log.info("주문 완료. 주문 ID: {}", order.id)
 
-        // 저장된 주문 정보를 반환한다.
-        return convertOrderEntityToDto(order)
+        // 사용자의 남은 마일리지를 조회한다.
+        val remainingMileage = mileageService.getUserMileageInfo(userId)
+
+        // 주문 응답 정보를 생성하여 반환한다.
+        return OrderResponseDto.from(
+            order = convertOrderEntityToDto(order),
+            mileageDto = remainingMileage
+        )
     }
 
     /**
