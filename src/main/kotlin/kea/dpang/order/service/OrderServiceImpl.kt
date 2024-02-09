@@ -171,7 +171,7 @@ class OrderServiceImpl(
         order.updateRecipient(orderRecipient)
 
         // 상품 정보를 조회한다.
-        val itemIds = orderRequestDto.orderIteminfo.map { it.itemId }
+        val itemIds = orderRequestDto.orderIteminfo.map { it.itemId }.distinct()
         val itemList = itemService.getItemInfos(itemIds)
 
         // 주문 상세 정보를 생성하고 주문 객체에 설정한다.
@@ -295,8 +295,8 @@ class OrderServiceImpl(
         }
 
         // 주문 목록에 포함된 상품 ID와 사용자 ID를 추출한다.
-        val itemIds = orders.content.flatMap { it.details.map { detail -> detail.itemId } }.toSet().toList()
-        val userIds = orders.content.map { it.userId }.toSet().toList()
+        val itemIds = orders.content.flatMap { it.details.map { detail -> detail.itemId } }.distinct()
+        val userIds = orders.content.map { it.userId }.distinct()
 
         log.info("주문 목록에 포함된 상품 ID: {}, 사용자 ID: {}", itemIds, userIds)
 
@@ -319,12 +319,18 @@ class OrderServiceImpl(
      */
     private fun convertOrderEntityToDto(
         order: Order,
-        users: Map<Long, UserDto>,
-        items: Map<Long, ItemInfoDto>
+        users: Map<Long, UserDto>? = null,
+        items: Map<Long, ItemInfoDto>? = null
     ): OrderDto {
-        val productList = order.details.map { orderDetail ->
-            val productInfo = items.getValue(orderDetail.itemId)
+        // 상품 정보가 넘어오지 않았다면 상품 서비스에 요청하여 상품 정보를 조회한다.
+        val itemList = items ?: run {
+            val itemIds = order.details.map { it.itemId }.distinct()
+            itemService.getItemInfos(itemIds).associateBy { it.id }
+        }
 
+        // 주문 상품 정보를 변환한다.
+        val productList = order.details.map { orderDetail ->
+            val productInfo = itemList.getValue(orderDetail.itemId)
             OrderedProductInfo(
                 orderDetailId = orderDetail.id!!,
                 orderStatus = orderDetail.status,
@@ -333,50 +339,17 @@ class OrderServiceImpl(
             )
         }
 
-        return OrderDto(
-            orderId = order.id!!,
-            orderDate = order.date!!.toLocalDate(),
-            productList = productList,
-            orderer = users.getValue(order.userId).name
-        )
-    }
-
-    /**
-     * Order 엔티티를 OrderDto로 변환하는 메서드
-     *
-     * @param order 변환할 Order 엔티티 객체
-     * @return 변환된 OrderDto 객체
-     */
-    private fun convertOrderEntityToDto(order: Order): OrderDto {
-        // 상품 서비스로부터 상품 정보를 조회한다.
-        val itemIds = order.details.map { it.itemId }
-        val itemList = itemService.getItemInfos(itemIds)
-
-        // 상품 정보 조회 및 DTO 설정
-        val productList = order.details.map { orderDetail ->
-
-            // 상품 정보를 찾는다.
-            val productInfo = itemList.find { it.id == orderDetail.itemId }
-
-            if (productInfo == null) {
-                log.error("상품 정보 없음. 상품 ID: {}", orderDetail.itemId)
-                throw ProductNotFoundException(orderDetail.itemId)
-            }
-
-            OrderedProductInfo(
-                orderDetailId = orderDetail.id!!,
-                orderStatus = orderDetail.status,
-                productInfoDto = ProductInfoDto.from(productInfo),
-                productQuantity = orderDetail.quantity
-            )
+        // 사용자 정보가 넘어오지 않았다면 사용자 서비스에 요청하여 사용자 정보를 조회한다.
+        val orderer = users?.getValue(order.userId)?.name ?: run {
+            val userId = order.userId
+            userService.getUserInfo(userId).name
         }
 
-        // OrderDto로 변환 및 반환
         return OrderDto(
             orderId = order.id!!,
             orderDate = order.date!!.toLocalDate(),
             productList = productList,
-            orderer = order.userId.toString()
+            orderer = orderer
         )
     }
 
