@@ -7,7 +7,6 @@ import kea.dpang.order.base.BaseResponse
 import kea.dpang.order.base.SuccessResponse
 import kea.dpang.order.dto.refund.RefundDetailDto
 import kea.dpang.order.dto.refund.RefundDto
-import kea.dpang.order.dto.refund.RefundOrderRequestDto
 import kea.dpang.order.dto.refund.RefundStatusDto
 import kea.dpang.order.entity.RefundReason
 import kea.dpang.order.service.RefundService
@@ -21,19 +20,8 @@ import java.time.LocalDate
 
 @Tag(name = "환불")
 @RestController
-@RequestMapping("/api/refund")
+@RequestMapping("/api/refunds")
 class RefundControllerImpl(private val refundService: RefundService) : RefundController {
-
-    @Operation(summary = "주문 환불 요청", description = "주문에 대한 환불을 요청합니다.")
-    @PostMapping("/{orderDetailId}")
-    override fun refundOrder(
-        @Parameter(description = "주문 상세 ID") @PathVariable orderDetailId: Long,
-        @Parameter(description = "환불 요청 정보") @RequestBody refundOrderRequest: RefundOrderRequestDto
-    ): ResponseEntity<BaseResponse> {
-
-        refundService.refundOrder(orderDetailId, refundOrderRequest)
-        return ResponseEntity.ok(BaseResponse(HttpStatus.OK.value(), "환불 요청이 완료되었습니다."))
-    }
 
     @Operation(summary = "환불 정보 조회", description = "환불 정보를 조회합니다.")
     @GetMapping("/{refundId}")
@@ -46,7 +34,7 @@ class RefundControllerImpl(private val refundService: RefundService) : RefundCon
     }
 
     @Operation(summary = "환불 목록 조회", description = "조건에 맞는 환불 목록을 조회합니다.")
-    @GetMapping("/list")
+    @GetMapping
     override fun getRefundList(
         @Parameter(description = "환불 요청 시작 날짜") @RequestParam(required = false)
         @DateTimeFormat(pattern = "yyyy-MM-dd") startDate: LocalDate?,

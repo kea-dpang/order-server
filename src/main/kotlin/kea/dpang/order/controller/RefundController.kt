@@ -4,7 +4,6 @@ import kea.dpang.order.base.BaseResponse
 import kea.dpang.order.base.SuccessResponse
 import kea.dpang.order.dto.refund.RefundDetailDto
 import kea.dpang.order.dto.refund.RefundDto
-import kea.dpang.order.dto.refund.RefundOrderRequestDto
 import kea.dpang.order.dto.refund.RefundStatusDto
 import kea.dpang.order.entity.RefundReason
 import org.springframework.data.domain.Page
@@ -13,15 +12,6 @@ import org.springframework.http.ResponseEntity
 import java.time.LocalDate
 
 interface RefundController {
-
-    /**
-     * 주문 환불 요청 - 사용자
-     *
-     * @param orderDetailId 주문 상세 ID
-     * @param refundOrderRequest 환불 요청 정보
-     * @return 환불 결과
-     */
-    fun refundOrder(orderDetailId: Long, refundOrderRequest: RefundOrderRequestDto): ResponseEntity<BaseResponse>
 
     /**
      * 환불 조회

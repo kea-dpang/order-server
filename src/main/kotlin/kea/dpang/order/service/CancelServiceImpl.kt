@@ -13,7 +13,7 @@ import kea.dpang.order.feign.dto.UpdateStockListRequestDto
 import kea.dpang.order.feign.dto.UpdateStockRequestDto
 import kea.dpang.order.feign.dto.UserDto
 import kea.dpang.order.repository.CancelRepository
-import kea.dpang.order.repository.OrderDetailRepository
+import kea.dpang.order.repository.OrderRepository
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -27,21 +27,25 @@ class CancelServiceImpl(
     private val itemService: ItemService,
     private val mileageService: MileageService,
     private val userService: UserService,
-    private val orderDetailRepository: OrderDetailRepository,
+    private val orderRepository: OrderRepository,
     private val cancelRepository: CancelRepository
 ) : CancelService {
 
     private val log = LoggerFactory.getLogger(CancelServiceImpl::class.java)
 
-    override fun cancelOrder(orderDetailId: Long) {
-        log.info("주문 취소 시작. 주문 상세 ID: {}", orderDetailId)
+    override fun cancelOrder(orderId: Long, orderDetailId: Long) {
+        log.info("주문 취소 시작. 주문 ID: {}, 주문 상세 ID: {}", orderId, orderDetailId)
 
-        // 주문 상세 ID를 사용하여 주문 상세 정보를 조회한다.
-        val orderDetail = orderDetailRepository.findById(orderDetailId)
+        // 주어진 orderId를 사용하여 데이터베이스에서 주문 정보를 조회한다.
+        val order = orderRepository.findById(orderId)
             .orElseThrow {
-                log.error("주문 상세 정보를 찾을 수 없음. 주문 상세 ID: {}", orderDetailId)
-                OrderDetailNotFoundException(orderDetailId)
+                log.error("주문 정보를 찾을 수 없음. 주문 ID: {}", orderId)
+                throw OrderDetailNotFoundException(orderDetailId)
             }
+
+        // 주어진 orderDetailId를 사용하여 주문 상세 정보를 조회한다.
+        val orderDetail = order.details.find { it.id == orderDetailId }
+            ?: throw OrderDetailNotFoundException(orderDetailId)
 
         // 조회된 주문 상태를 확인하여, 주문이 취소가 가능한지 확인한다. 주문 상태가 '결제 완료'인 경우에만 취소가 가능하다.
         if (orderDetail.status != PAYMENT_COMPLETED) {

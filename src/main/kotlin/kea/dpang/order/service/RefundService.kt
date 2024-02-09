@@ -14,11 +14,12 @@ interface RefundService {
     /**
      * 주문 환불 요청 - 사용자
      *
+     * @param orderId 주문 ID
      * @param orderDetailId 주문 상세 ID
      * @param refundOrderRequest 환불 요청 정보
      * @return 환불 결과
      */
-    fun refundOrder(orderDetailId: Long, refundOrderRequest: RefundOrderRequestDto)
+    fun refundOrder(orderId: Long, orderDetailId: Long, refundOrderRequest: RefundOrderRequestDto)
 
     /**
      * 환불 조회

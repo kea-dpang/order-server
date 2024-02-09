@@ -3,7 +3,6 @@ package kea.dpang.order.controller
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
-import kea.dpang.order.base.BaseResponse
 import kea.dpang.order.base.SuccessResponse
 import kea.dpang.order.dto.cancel.CancelDto
 import kea.dpang.order.service.CancelService
@@ -17,18 +16,8 @@ import java.time.LocalDate
 
 @Tag(name = "취소")
 @RestController
-@RequestMapping("/api/cancel")
+@RequestMapping("/api/cancels")
 class CancelControllerImpl(private val cancelService: CancelService) : CancelController {
-
-    @Operation(summary = "주문 취소", description = "주문을 취소합니다.")
-    @PostMapping("/{orderDetailId}")
-    override fun cancelOrder(
-        @Parameter(description = "주문 상세 ID") @PathVariable orderDetailId: Long
-    ): ResponseEntity<BaseResponse> {
-
-        cancelService.cancelOrder(orderDetailId)
-        return ResponseEntity.ok(BaseResponse(HttpStatus.OK.value(), "주문이 취소되었습니다."))
-    }
 
     @Operation(summary = "취소 정보 조회", description = "취소 정보를 조회합니다.")
     @GetMapping("/{cancelId}")
@@ -41,7 +30,7 @@ class CancelControllerImpl(private val cancelService: CancelService) : CancelCon
     }
 
     @Operation(summary = "취소 목록 조회", description = "조건에 맞는 취소 목록을 조회합니다.")
-    @GetMapping("/list")
+    @GetMapping
     override fun getCancelList(
         @Parameter(description = "취소 요청 시작 날짜") @RequestParam(required = false)
         @DateTimeFormat(pattern = "yyyy-MM-dd") startDate: LocalDate?,

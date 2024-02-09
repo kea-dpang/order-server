@@ -10,10 +10,11 @@ interface CancelService {
     /**
      * 주문 취소 요청 - 사용자
      *
+     * @param orderId 주문 ID
      * @param orderDetailId 주문 상세 ID
      * @return 취소 결과
      */
-    fun cancelOrder(orderDetailId: Long)
+    fun cancelOrder(orderId:Long, orderDetailId: Long)
 
     /**
      * 주문 취소 상세 조회
