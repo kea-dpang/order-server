@@ -15,6 +15,8 @@ import org.springframework.data.domain.Pageable
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.access.prepost.PostAuthorize
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 import java.time.LocalDate
 
@@ -23,9 +25,14 @@ import java.time.LocalDate
 @RequestMapping("/api/refunds")
 class RefundControllerImpl(private val refundService: RefundService) : RefundController {
 
+    @PostAuthorize("(#role = 'USER' and #returnObject.body.data.refundDto.userId == #clientId) or #role = 'ADMIN' or #role = 'SUPER_ADMIN'")
     @Operation(summary = "환불 정보 조회", description = "환불 정보를 조회합니다.")
     @GetMapping("/{refundId}")
     override fun getRefund(
+        @Parameter(hidden = true)
+        @RequestHeader("X-DPANG-CLIENT-ID") clientId: Long,
+        @Parameter(hidden = true)
+        @RequestHeader("X-DPANG-CLIENT-ROLE") role: String,
         @Parameter(description = "환불 ID") @PathVariable refundId: Long
     ): ResponseEntity<SuccessResponse<RefundDetailDto>> {
 
@@ -33,9 +40,14 @@ class RefundControllerImpl(private val refundService: RefundService) : RefundCon
         return ResponseEntity.ok(SuccessResponse(HttpStatus.OK.value(), "조회가 완료되었습니다.", refundDetail))
     }
 
+    @PreAuthorize("(#role=='USER' and #clientId == #userId) or #role='ADMIN' or #role='SUPER_ADMIN'")
     @Operation(summary = "환불 목록 조회", description = "조건에 맞는 환불 목록을 조회합니다.")
     @GetMapping
     override fun getRefundList(
+        @Parameter(hidden = true)
+        @RequestHeader("X-DPANG-CLIENT-ID") clientId: Long,
+        @Parameter(hidden = true)
+        @RequestHeader("X-DPANG-CLIENT-ROLE") role: String,
         @Parameter(description = "환불 요청 시작 날짜") @RequestParam(required = false)
         @DateTimeFormat(pattern = "yyyy-MM-dd") startDate: LocalDate?,
         @Parameter(description = "환불 요청 종료 날짜") @RequestParam(required = false)
@@ -49,9 +61,12 @@ class RefundControllerImpl(private val refundService: RefundService) : RefundCon
         return ResponseEntity.ok(SuccessResponse(HttpStatus.OK.value(), "조회가 완료되었습니다.", refundList))
     }
 
+    @PreAuthorize("#role='ADMIN' or #role='SUPER_ADMIN'")
     @Operation(summary = "환불 상태 업데이트", description = "환불 상태를 업데이트합니다.")
     @PutMapping("/{refundId}")
     override fun updateRefundStatus(
+        @Parameter(hidden = true)
+        @RequestHeader("X-DPANG-CLIENT-ROLE") role: String,
         @Parameter(description = "환불 ID") @PathVariable refundId: Long,
         @Parameter(description = "환불 상태 정보") @RequestBody refundStatusDto: RefundStatusDto
     ): ResponseEntity<BaseResponse> {
