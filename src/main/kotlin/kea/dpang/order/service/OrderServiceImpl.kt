@@ -166,22 +166,22 @@ class OrderServiceImpl(
         val itemList = itemService.getItemInfos(itemIds)
 
         // 주문 상세 정보를 생성하고 주문 객체에 설정한다.
-        order.details = orderRequestDto.orderItemInfo.map { orderIteminfo ->
+        order.details = orderRequestDto.orderItemInfo.map { orderItemInfo ->
 
             // 상품 정보를 찾는다.
-            val itemInfo = itemList.find { it.id == orderIteminfo.itemId }
+            val itemInfo = itemList.find { it.id == orderItemInfo.itemId }
 
             if (itemInfo == null) {
-                log.error("상품 정보 없음. 상품 ID: {}", orderIteminfo.itemId)
-                throw ProductNotFoundException(orderIteminfo.itemId)
+                log.error("상품 정보 없음. 상품 ID: {}", orderItemInfo.itemId)
+                throw ProductNotFoundException(orderItemInfo.itemId)
             }
 
             // 주문 상세 정보를 생성한다.
             OrderDetail(
                 order = order, // order 객체에 대한 참조를 설정한다.
                 status = ORDER_RECEIVED,
-                itemId = orderIteminfo.itemId,
-                quantity = orderIteminfo.quantity,
+                itemId = orderItemInfo.itemId,
+                quantity = orderItemInfo.quantity,
                 purchasePrice = itemInfo.price
             )
 
