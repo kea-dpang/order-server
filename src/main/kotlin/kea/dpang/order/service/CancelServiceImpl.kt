@@ -3,6 +3,7 @@ package kea.dpang.order.service
 import kea.dpang.order.dto.ProductInfoDto
 import kea.dpang.order.dto.cancel.CancelDto
 import kea.dpang.order.entity.Cancel
+import kea.dpang.order.entity.OrderDetail
 import kea.dpang.order.entity.OrderStatus.CANCELLED
 import kea.dpang.order.entity.OrderStatus.PAYMENT_COMPLETED
 import kea.dpang.order.exception.CancelNotFoundException
@@ -47,11 +48,8 @@ class CancelServiceImpl(
         val orderDetail = order.details.find { it.id == orderDetailId }
             ?: throw OrderDetailNotFoundException(orderDetailId)
 
-        // 조회된 주문 상태를 확인하여, 주문이 취소가 가능한지 확인한다. 주문 상태가 '결제 완료'인 경우에만 취소가 가능하다.
-        if (orderDetail.status != PAYMENT_COMPLETED) {
-            log.error("주문 취소 불가능 상태. 주문 상세 ID: {}", orderDetailId)
-            throw UnableToCancelException()
-        }
+        // 조회된 주문 상태를 확인하여, 주문이 취소가 가능한지 확인한다.
+        checkCancelAvailable(orderDetail)
 
         // 주문 상태를 '취소'로 변경한다.
         orderDetail.status = CANCELLED
@@ -85,6 +83,19 @@ class CancelServiceImpl(
         mileageService.refundMileage(orderDetail.order.userId, cancel.refundAmount, "주문 취소")
 
         log.info("주문 취소 완료. 주문 상세 ID: {}", orderDetailId)
+    }
+
+    /**
+     * 주문 상세 정보의 상태를 확인하여 주문 취소가 가능한지 확인하는 메서드
+     * 주문 상태가 '결제 완료'인 경우에만 취소가 가능하다.
+     *
+     * @param orderDetail 주문 상세 정보
+     */
+    private fun checkCancelAvailable(orderDetail: OrderDetail) {
+        if (orderDetail.status != PAYMENT_COMPLETED) {
+            log.error("주문 취소 불가능 상태. 주문 상세 ID: {}", orderDetail.id)
+            throw UnableToCancelException()
+        }
     }
 
     @Transactional(readOnly = true)
