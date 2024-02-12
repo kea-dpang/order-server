@@ -263,8 +263,8 @@ class OrderServiceImpl(
 
     /**
      * 주문 상태 변경이 유효한지 검증하는 메서드.
-     * 주문 상태는 순차적으로 변경되어야 하며, 이를 위반할 경우 예외를 발생시킨다.
-     * 예를 들어, '주문 접수' 상태에서 바로 '배송중' 상태로 변경하는 것은 허용되지 않는다.
+     * '결제 완료' 상태 이후로는 '결제 완료' 이전 상태로 돌아갈 수 없고,
+     * '주문 취소' 이후에는 그 어떤 상태로의 변경도 할 수 없다.
      *
      * @param currentStatus 현재 주문 상태
      * @param targetStatus 변경하려는 주문 상태
@@ -273,8 +273,14 @@ class OrderServiceImpl(
     private fun validateStatusChange(currentStatus: OrderStatus, targetStatus: OrderStatus) {
         log.info("주문 상태 변경 검증 시작. 현재 상태: {}, 변경하려는 상태: {}", currentStatus, targetStatus)
 
-        if (currentStatus.ordinal + 1 != targetStatus.ordinal) {
-            log.error("주문 상태 변경 검증 실패. 현재 상태: {}, 변경하려는 상태: {}", currentStatus, targetStatus)
+        if (currentStatus == OrderStatus.CANCELLED) {
+            log.error("주문 취소 상태에서는 주문 상태 변경이 불가능합니다. 현재 상태: {}, 변경하려는 상태: {}", currentStatus, targetStatus)
+            throw InvalidOrderStatusChangeException(currentStatus.name, targetStatus.name)
+        }
+
+        if (currentStatus.ordinal > PAYMENT_COMPLETED.ordinal
+            && targetStatus.ordinal <= PAYMENT_COMPLETED.ordinal) {
+            log.error("결제 완료 상태 이후로는 결제 완료 이전 상태로 돌아갈 수 없습니다. 현재 상태: {}, 변경하려는 상태: {}", currentStatus, targetStatus)
             throw InvalidOrderStatusChangeException(currentStatus.name, targetStatus.name)
         }
 
