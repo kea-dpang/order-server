@@ -3,10 +3,10 @@ package kea.dpang.order.service
 import kea.dpang.order.dto.ProductInfoDto
 import kea.dpang.order.dto.cancel.CancelDto
 import kea.dpang.order.entity.Cancel
+import kea.dpang.order.entity.OrderDetail
 import kea.dpang.order.entity.OrderStatus.CANCELLED
 import kea.dpang.order.entity.OrderStatus.PAYMENT_COMPLETED
 import kea.dpang.order.exception.CancelNotFoundException
-import kea.dpang.order.exception.OrderDetailNotFoundException
 import kea.dpang.order.exception.UnableToCancelException
 import kea.dpang.order.feign.dto.ItemInfoDto
 import kea.dpang.order.feign.dto.UpdateStockListRequestDto
@@ -14,6 +14,7 @@ import kea.dpang.order.feign.dto.UpdateStockRequestDto
 import kea.dpang.order.feign.dto.UserDto
 import kea.dpang.order.repository.CancelRepository
 import kea.dpang.order.repository.OrderRepository
+import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -27,31 +28,20 @@ class CancelServiceImpl(
     private val itemService: ItemService,
     private val mileageService: MileageService,
     private val userService: UserService,
-    private val orderRepository: OrderRepository,
+    orderRepository: OrderRepository,
     private val cancelRepository: CancelRepository
-) : CancelService {
+) : CancelService, BaseService(itemService, userService, orderRepository) {
 
     private val log = LoggerFactory.getLogger(CancelServiceImpl::class.java)
 
     override fun cancelOrder(orderId: Long, orderDetailId: Long) {
         log.info("주문 취소 시작. 주문 ID: {}, 주문 상세 ID: {}", orderId, orderDetailId)
 
-        // 주어진 orderId를 사용하여 데이터베이스에서 주문 정보를 조회한다.
-        val order = orderRepository.findById(orderId)
-            .orElseThrow {
-                log.error("주문 정보를 찾을 수 없음. 주문 ID: {}", orderId)
-                throw OrderDetailNotFoundException(orderDetailId)
-            }
+        // 주문 상세 정보를 조회한다.
+        val orderDetail = fetchOrderDetail(orderId, orderDetailId)
 
-        // 주어진 orderDetailId를 사용하여 주문 상세 정보를 조회한다.
-        val orderDetail = order.details.find { it.id == orderDetailId }
-            ?: throw OrderDetailNotFoundException(orderDetailId)
-
-        // 조회된 주문 상태를 확인하여, 주문이 취소가 가능한지 확인한다. 주문 상태가 '결제 완료'인 경우에만 취소가 가능하다.
-        if (orderDetail.status != PAYMENT_COMPLETED) {
-            log.error("주문 취소 불가능 상태. 주문 상세 ID: {}", orderDetailId)
-            throw UnableToCancelException()
-        }
+        // 조회된 주문 상태를 확인하여, 주문이 취소가 가능한지 확인한다.
+        checkCancelAvailable(orderDetail)
 
         // 주문 상태를 '취소'로 변경한다.
         orderDetail.status = CANCELLED
@@ -85,6 +75,19 @@ class CancelServiceImpl(
         mileageService.refundMileage(orderDetail.order.userId, cancel.refundAmount, "주문 취소")
 
         log.info("주문 취소 완료. 주문 상세 ID: {}", orderDetailId)
+    }
+
+    /**
+     * 주문 상세 정보의 상태를 확인하여 주문 취소가 가능한지 확인하는 메서드
+     * 주문 상태가 '결제 완료'인 경우에만 취소가 가능하다.
+     *
+     * @param orderDetail 주문 상세 정보
+     */
+    private fun checkCancelAvailable(orderDetail: OrderDetail) {
+        if (orderDetail.status != PAYMENT_COMPLETED) {
+            log.error("주문 취소 불가능 상태. 주문 상세 ID: {}", orderDetail.id)
+            throw UnableToCancelException()
+        }
     }
 
     @Transactional(readOnly = true)
@@ -123,19 +126,14 @@ class CancelServiceImpl(
             return Page.empty()
         }
 
-        // 취소 목록에 포함된 사용자 ID를 추출한다.
-        val userIds = cancels.map { it.orderDetail.order.userId }.distinct()
-        log.info("취소 목록에 포함된 사용자 ID 목록: {}", userIds)
-
-        // 취소 목록에 포함된 사용자 정보를 조회한다.
-        val users = userService.getUserInfos(userIds).associateBy { it.userId }
-
-        // 취소 목록에 포함된 상품 ID를 추출한다.
+        // 취소 목록에 포함된 상품 ID와 사용자 ID를 추출한다.
         val itemIds = cancels.map { it.orderDetail.itemId }.distinct()
-        log.info("취소 목록에 포함된 상품 ID 목록: {}", itemIds)
+        val userIds = cancels.map { it.orderDetail.order.userId }.distinct()
 
-        // 취소 목록에 포함된 상품 정보를 조회한다.
-        val items = itemService.getItemInfos(itemIds).associateBy { it.id }
+        log.info("취소 목록에 포함된 상품 ID 목록: {}, 사용자 ID 목록: {}", itemIds, userIds)
+
+        // runBlocking 블록 내에서 비동기로 상품 정보 조회와 사용자 정보 조회한다.
+        val (items, users) = runBlocking { fetchItemAndUserInfos(itemIds, userIds) }
 
         // RefundDto 목록으로 변환하여 반환한다.
         return cancels.map { convertCancelEntityToDto(it, users, items) }

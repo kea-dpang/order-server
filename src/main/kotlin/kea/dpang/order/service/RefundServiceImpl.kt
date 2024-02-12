@@ -3,19 +3,23 @@ package kea.dpang.order.service
 import kea.dpang.order.dto.OrderedProductInfo
 import kea.dpang.order.dto.ProductInfoDto
 import kea.dpang.order.dto.refund.*
-import kea.dpang.order.dto.refund.RefundDetailDto.*
+import kea.dpang.order.entity.OrderDetail
 import kea.dpang.order.entity.OrderStatus.CANCELLED
 import kea.dpang.order.entity.OrderStatus.DELIVERY_COMPLETED
 import kea.dpang.order.entity.Recall
 import kea.dpang.order.entity.Refund
 import kea.dpang.order.entity.RefundStatus
-import kea.dpang.order.exception.*
+import kea.dpang.order.exception.InvalidRefundStatusChangeException
+import kea.dpang.order.exception.RefundAlreadyInRequestedStatusException
+import kea.dpang.order.exception.RefundNotFoundException
+import kea.dpang.order.exception.UnableToRefundException
 import kea.dpang.order.feign.dto.ItemInfoDto
 import kea.dpang.order.feign.dto.UpdateStockListRequestDto
 import kea.dpang.order.feign.dto.UpdateStockRequestDto
 import kea.dpang.order.feign.dto.UserDto
 import kea.dpang.order.repository.OrderRepository
 import kea.dpang.order.repository.RefundRepository
+import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -30,30 +34,19 @@ class RefundServiceImpl(
     private val mileageService: MileageService,
     private val userService: UserService,
     private val refundRepository: RefundRepository,
-    private val orderRepository: OrderRepository
-) : RefundService {
+    orderRepository: OrderRepository
+) : RefundService, BaseService(itemService, userService, orderRepository) {
 
     private val log = LoggerFactory.getLogger(RefundServiceImpl::class.java)
 
     override fun refundOrder(orderId: Long, orderDetailId: Long, refundOrderRequest: RefundOrderRequestDto) {
         log.info("환불 요청 시작. 주문 상세 ID: {}", orderDetailId)
 
-        // 주어진 orderId를 사용하여 데이터베이스에서 주문 정보를 조회한다.
-        val order = orderRepository.findById(orderId)
-            .orElseThrow {
-                log.error("주문 정보를 찾을 수 없음. 주문 ID: {}", orderId)
-                throw OrderDetailNotFoundException(orderDetailId)
-            }
-
-        // 주어진 orderDetailId를 사용하여 주문 상세 정보를 조회한다.
-        val orderDetail = order.details.find { it.id == orderDetailId }
-            ?: throw OrderDetailNotFoundException(orderDetailId)
+        // 주문 상세 정보를 조회한다.
+        val orderDetail = fetchOrderDetail(orderId, orderDetailId)
 
         // 조회된 주문 상태를 확인하여, 환불이 가능한 상태인지 확인한다.
-        if (orderDetail.status != DELIVERY_COMPLETED) {
-            log.error("환불 불가능 상태. 주문 상세 ID: {}", orderDetailId)
-            throw UnableToRefundException()
-        }
+        checkRefundAvailable(orderDetail)
 
         // 주문 상태를 '취소'로 변경한다.
         orderDetail.status = CANCELLED
@@ -88,6 +81,18 @@ class RefundServiceImpl(
         orderDetail.assignRefund(refund)
 
         log.info("환불 요청 완료. 주문 상세 ID: {}", orderDetailId)
+    }
+
+    /**
+     * 주문 상세 정보의 상태를 확인하여 환불이 가능한지 확인하는 메서드
+     *
+     * @param orderDetail 환불 가능 여부를 확인할 주문 상세 정보
+     */
+    private fun checkRefundAvailable(orderDetail: OrderDetail) {
+        if (orderDetail.status != DELIVERY_COMPLETED) {
+            log.error("환불 불가능 상태. 주문 상세 ID: {}", orderDetail.id)
+            throw UnableToRefundException()
+        }
     }
 
     @Transactional(readOnly = true)
@@ -170,19 +175,14 @@ class RefundServiceImpl(
             return Page.empty()
         }
 
-        // 환불 목록에 포함된 사용자 ID를 추출한다.
-        val userIds = refunds.map { it.orderDetail.order.userId }.distinct()
-        log.info("환불 목록에 포함된 사용자 ID: {}", userIds)
-
-        // 환불 목록에 포함된 사용자 정보를 조회한다.
-        val users = userService.getUserInfos(userIds).associateBy { it.userId }
-
-        // 환불 목록에 포함된 상품 ID를 추출한다.
+        // 환불 목록에 포함된 상품 ID와 사용자 ID를 추출한다.
         val itemIds = refunds.map { it.orderDetail.itemId }.distinct()
-        log.info("환불 목록에 포함된 상품 ID: {}", itemIds)
+        val userIds = refunds.map { it.orderDetail.order.userId }.distinct()
 
-        // 환불 목록에 포함된 상품 정보를 조회한다.
-        val items = itemService.getItemInfos(itemIds).associateBy { it.id }
+        log.info("환불 목록에 포함된 상품 ID 목록: {}, 사용자 ID 목록: {}", itemIds, userIds)
+
+        // runBlocking 블록 내에서 비동기로 상품 정보 조회와 사용자 정보 조회한다.
+        val (items, users) = runBlocking { fetchItemAndUserInfos(itemIds, userIds) }
 
         // RefundDto 목록으로 변환하여 반환한다.
         return refunds.map { convertRefundEntityToDto(it, users, items) }
@@ -230,12 +230,6 @@ class RefundServiceImpl(
         // RefundStatusDto에서 변경할 환불 상태를 추출한다.
         val newStatus = refundStatusDto.status
 
-        // 변경할 환불 상태가 현재 환불 상태와 동일한지 확인한다.
-        if (refund.refundStatus == newStatus) {
-            log.error("이미 요청된 환불 상태. 환불 ID: {}, 현재 상태: {}, 변경할 상태: {}", refundId, refund.refundStatus, newStatus)
-            throw RefundAlreadyInRequestedStatusException()
-        }
-
         // 환불 상태 변경이 유효한지 검증한다.
         validateStatusChange(refund.refundStatus, newStatus)
 
@@ -278,6 +272,13 @@ class RefundServiceImpl(
      * @throws InvalidRefundStatusChangeException 환불 상태 변경이 유효하지 않은 경우
      */
     private fun validateStatusChange(currentStatus: RefundStatus, targetStatus: RefundStatus) {
+        // 변경할 환불 상태가 현재 환불 상태와 동일한지 확인한다.
+        if (currentStatus == targetStatus) {
+            log.error("이미 요청된 환불 상태. 환불 ID: {}, 현재 상태: {}, 변경할 상태: {}", currentStatus, targetStatus)
+            throw RefundAlreadyInRequestedStatusException()
+        }
+
+        // 변경할 환불 상태가 현재 환불 상태보다 순차적인지 확인한다.
         if (currentStatus.ordinal + 1 != targetStatus.ordinal) {
             log.error("잘못된 환불 상태 변경 시도. 현재 상태: {}, 목표 상태: {}", currentStatus, targetStatus)
             throw InvalidRefundStatusChangeException(currentStatus.name, targetStatus.name)

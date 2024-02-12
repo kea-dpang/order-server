@@ -15,6 +15,7 @@ import kea.dpang.order.feign.dto.UpdateStockListRequestDto
 import kea.dpang.order.feign.dto.UpdateStockRequestDto
 import kea.dpang.order.feign.dto.UserDto
 import kea.dpang.order.repository.OrderRepository
+import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -29,7 +30,7 @@ class OrderServiceImpl(
     private val mileageService: MileageService,
     private val userService: UserService,
     private val orderRepository: OrderRepository
-) : OrderService {
+) : OrderService, BaseService(itemService, userService, orderRepository) {
 
     private val log = LoggerFactory.getLogger(OrderServiceImpl::class.java)
 
@@ -101,34 +102,19 @@ class OrderServiceImpl(
      * @return 주문의 총 비용
      */
     private fun calculateItemTotalCost(productInfoList: List<ItemInfo>, products: List<ItemInfoDto>): Int {
-        var totalCost = 0
-
-        for (productInfo in productInfoList) {
-            val productId = productInfo.itemId
-            val quantity = productInfo.quantity
+        return productInfoList.sumOf { productInfo ->
 
             // 상품 정보를 찾는다.
-            val product = products.find { it.id == productId }
-                ?: throw ProductNotFoundException(productId) // 상품 정보를 상위 메소드에서 조회 하기 때문에 이 예외는 거의 발생하지 않는다.
+            val product = products.find { it.id == productInfo.itemId }
+                ?: throw ProductNotFoundException(productInfo.itemId)
 
-            checkStockIsEnough(product, quantity)
+            // 상품의 재고가 충분한지 확인한다.
+            if (product.quantity < productInfo.quantity) {
+                throw InsufficientStockException(product.id)
+            }
 
-            totalCost += product.price * quantity
-        }
-
-        return totalCost
-    }
-
-    /**
-     * 상품의 재고가 충분한지 확인하는 메서드
-     *
-     * @param product 상품 정보
-     * @param quantity 주문 수량
-     */
-    private fun checkStockIsEnough(product: ItemInfoDto, quantity: Int) {
-        if (product.quantity < quantity) {
-            log.error("재고 부족. 상품 ID: {}, 요청량: {}, 재고량: {}", product.id, quantity, product.quantity)
-            throw InsufficientStockException(product.id)
+            // 상품의 가격과 주문 수량을 곱하여 반환한다.
+            product.price * productInfo.quantity
         }
     }
 
@@ -181,23 +167,18 @@ class OrderServiceImpl(
         val itemList = itemService.getItemInfos(itemIds)
 
         // 주문 상세 정보를 생성하고 주문 객체에 설정한다.
-        order.details = orderRequestDto.orderItemInfo.map { orderIteminfo ->
+        order.details = orderRequestDto.orderItemInfo.map { orderItemInfo ->
 
             // 상품 정보를 찾는다.
-            val itemInfo = itemList.find { it.id == orderIteminfo.itemId }
-
-            if (itemInfo == null) {
-                log.error("상품 정보 없음. 상품 ID: {}", orderIteminfo.itemId)
-                throw ProductNotFoundException(orderIteminfo.itemId)
-            }
+            val itemInfo = itemList.find { it.id == orderItemInfo.itemId }
 
             // 주문 상세 정보를 생성한다.
             OrderDetail(
                 order = order, // order 객체에 대한 참조를 설정한다.
                 status = ORDER_RECEIVED,
-                itemId = orderIteminfo.itemId,
-                quantity = orderIteminfo.quantity,
-                purchasePrice = itemInfo.price
+                itemId = orderItemInfo.itemId,
+                quantity = orderItemInfo.quantity,
+                purchasePrice = itemInfo!!.price
             )
 
         }.toMutableList()
@@ -210,11 +191,7 @@ class OrderServiceImpl(
         log.info("주문 상태 변경 시작. 주문 ID: {}, 변경 요청 정보: {}", orderId, updateOrderStatusRequest)
 
         // 데이터베이스에서 주문 정보를 조회한다.
-        val order = orderRepository.findById(orderId)
-            .orElseThrow {
-                log.error("주문 상태 변경 실패. 찾을 수 없는 주문 상세 ID: {}", orderId)
-                OrderNotFoundException(orderId)
-            }
+        val order = fetchOrder(orderId)
 
         // 주문 상태 변경을 처리한다.
         order.details.forEach { orderDetail ->
@@ -227,16 +204,8 @@ class OrderServiceImpl(
     override fun updateOrderDetailStatus(orderId: Long, orderDetailId: Long, updateOrderStatusRequest: UpdateOrderStatusRequestDto) {
         log.info("주문 상태 변경 시작. 주문 ID: {}, 주문 상세 ID: {}, 변경 요청 정보: {}", orderId, orderDetailId, updateOrderStatusRequest)
 
-        // 데이터베이스에서 주문 정보를 조회한다.
-        val order = orderRepository.findById(orderId)
-            .orElseThrow {
-                log.error("주문 상태 변경 실패. 찾을 수 없는 주문 ID: {}", orderId)
-                OrderNotFoundException(orderId)
-            }
-
         // 주문 상세 정보를 조회한다.
-        val orderDetail = order.details.find { it.id == orderDetailId }
-            ?: throw OrderDetailNotFoundException(orderDetailId)
+        val orderDetail = fetchOrderDetail(orderId, orderDetailId)
 
         // 주문 상태 변경을 처리한다.
         log.info("주문 상태 변경 처리 시작. 주문 상세 ID: {}, 변경 요청 정보: {}", orderDetailId, updateOrderStatusRequest)
@@ -312,11 +281,8 @@ class OrderServiceImpl(
 
         log.info("주문 목록에 포함된 상품 ID: {}, 사용자 ID: {}", itemIds, userIds)
 
-        // 주문 목록에 포함된 상품 정보를 조회한다.
-        val items = itemService.getItemInfos(itemIds).associateBy { it.id }
-
-        // 주문 목록에 포함된 사용자 정보를 조회한다.
-        val users = userService.getUserInfos(userIds).associateBy { it.userId }
+        // runBlocking 블록 내에서 비동기로 상품 정보 조회와 사용자 정보 조회한다.
+        val (items, users) = runBlocking { fetchItemAndUserInfos(itemIds, userIds) }
 
         return orders.map { convertOrderEntityToDto(it, users, items) }
     }
@@ -370,11 +336,7 @@ class OrderServiceImpl(
         log.info("주문 상세 정보 조회 시작. 주문 ID: {}", orderId)
 
         // 데이터베이스에서 주문 정보를 조회
-        val order = orderRepository.findById(orderId)
-            .orElseThrow {
-                log.error("주문 상세 정보 조회 실패. 찾을 수 없는 주문 ID: {}", orderId)
-                OrderNotFoundException(orderId)
-            }
+        val order = fetchOrder(orderId)
 
         // OrderDetailDto 반환
         val orderDetailDto = OrderDetailDto(
@@ -393,16 +355,8 @@ class OrderServiceImpl(
     override fun getOrderDetailInfo(orderId: Long, orderDetailId: Long): OrderedProductInfo {
         log.info("주문 상세 정보 조회 시작. 주문 ID: {}, 주문 상세 ID: {}", orderId, orderDetailId)
 
-        // 데이터베이스에서 주문 정보를 조회
-        val order = orderRepository.findById(orderId)
-            .orElseThrow {
-                log.error("주문 상세 정보 조회 실패. 찾을 수 없는 주문 ID: {}", orderId)
-                OrderNotFoundException(orderId)
-            }
-
         // 주문 상세 정보를 조회
-        val orderDetail = order.details.find { it.id == orderDetailId }
-            ?: throw OrderDetailNotFoundException(orderDetailId)
+        val orderDetail = fetchOrderDetail(orderId, orderDetailId)
 
         // 상품 정보 조회
         val productInfo = itemService.getItemInfo(orderDetail.itemId)
