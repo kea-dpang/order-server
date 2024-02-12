@@ -16,7 +16,6 @@ import kea.dpang.order.feign.dto.UpdateStockRequestDto
 import kea.dpang.order.feign.dto.UserDto
 import kea.dpang.order.repository.OrderRepository
 import kea.dpang.order.repository.RefundRepository
-import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
@@ -33,7 +32,7 @@ class RefundServiceImpl(
     private val userService: UserService,
     private val refundRepository: RefundRepository,
     private val orderRepository: OrderRepository
-) : RefundService {
+) : RefundService, BaseService(itemService, userService) {
 
     private val log = LoggerFactory.getLogger(RefundServiceImpl::class.java)
 
@@ -188,18 +187,7 @@ class RefundServiceImpl(
         log.info("환불 목록에 포함된 상품 ID 목록: {}, 사용자 ID 목록: {}", itemIds, userIds)
 
         // runBlocking 블록 내에서 비동기로 상품 정보 조회와 사용자 정보 조회한다.
-        val (items, users) = runBlocking {
-            val itemsDeferred = async {
-                itemService.getItemInfos(itemIds).associateBy { it.id }
-            }
-
-            val usersDeferred = async {
-                userService.getUserInfos(userIds).associateBy { it.userId }
-            }
-
-            // itemsDeferred와 usersDeferred가 모두 완료될 때까지 기다린 후, 그 결과를 Pair로 묶어서 반환한다.
-            Pair(itemsDeferred.await(), usersDeferred.await())
-        }
+        val (items, users) = runBlocking { fetchItemAndUserInfos(itemIds, userIds) }
 
         // RefundDto 목록으로 변환하여 반환한다.
         return refunds.map { convertRefundEntityToDto(it, users, items) }
