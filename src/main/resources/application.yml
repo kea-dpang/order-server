@@ -6,7 +6,7 @@ spring:
     hibernate:
       ddl-auto: update
 
-    show-sql: true
+#    show-sql: true
 
   data:
     web:
@@ -16,5 +16,5 @@ spring:
 logging:
   level:
     org.springframework.security: DEBUG
-    kea.dpang.order.feign.*: DEBUG
+#    kea.dpang.order.feign.*: DEBUG
 
