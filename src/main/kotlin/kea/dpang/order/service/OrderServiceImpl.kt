@@ -171,18 +171,13 @@ class OrderServiceImpl(
             // 상품 정보를 찾는다.
             val itemInfo = itemList.find { it.id == orderItemInfo.itemId }
 
-            if (itemInfo == null) {
-                log.error("상품 정보 없음. 상품 ID: {}", orderItemInfo.itemId)
-                throw ProductNotFoundException(orderItemInfo.itemId)
-            }
-
             // 주문 상세 정보를 생성한다.
             OrderDetail(
                 order = order, // order 객체에 대한 참조를 설정한다.
                 status = ORDER_RECEIVED,
                 itemId = orderItemInfo.itemId,
                 quantity = orderItemInfo.quantity,
-                purchasePrice = itemInfo.price
+                purchasePrice = itemInfo!!.price
             )
 
         }.toMutableList()
