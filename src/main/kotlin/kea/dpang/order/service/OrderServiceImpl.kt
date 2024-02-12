@@ -3,6 +3,8 @@ package kea.dpang.order.service
 import kea.dpang.order.dto.OrderedProductInfo
 import kea.dpang.order.dto.ProductInfoDto
 import kea.dpang.order.dto.order.*
+import kea.dpang.order.dto.order.OrderDetailDto.PaymentInfo
+import kea.dpang.order.dto.order.OrderRequestDto.ItemInfo
 import kea.dpang.order.entity.Order
 import kea.dpang.order.entity.OrderDetail
 import kea.dpang.order.entity.OrderRecipient
@@ -37,7 +39,7 @@ class OrderServiceImpl(
         log.info("주문 시작. 사용자 ID: {}, 주문 정보: {}", userId, orderRequest)
 
         // OrderRequestDto에서 주문 정보를 추출한다.
-        val productInfoList = orderRequest.orderIteminfo
+        val productInfoList = orderRequest.orderItemInfo
 
         // 상품 정보를 조회한다.
         val productIds = productInfoList.map { it.itemId }
@@ -177,11 +179,11 @@ class OrderServiceImpl(
         order.updateRecipient(orderRecipient)
 
         // 상품 정보를 조회한다.
-        val itemIds = orderRequestDto.orderIteminfo.map { it.itemId }.distinct()
+        val itemIds = orderRequestDto.orderItemInfo.map { it.itemId }.distinct()
         val itemList = itemService.getItemInfos(itemIds)
 
         // 주문 상세 정보를 생성하고 주문 객체에 설정한다.
-        order.details = orderRequestDto.orderIteminfo.map { orderIteminfo ->
+        order.details = orderRequestDto.orderItemInfo.map { orderIteminfo ->
 
             // 상품 정보를 찾는다.
             val itemInfo = itemList.find { it.id == orderIteminfo.itemId }

@@ -7,6 +7,6 @@ import kea.dpang.order.entity.RefundStatus
  *
  * @property status 환불 상태
  */
-data class RefundStatusDto(
+data class UpdateRefundStatusRequestDto(
     val status: RefundStatus
 )
