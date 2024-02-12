@@ -200,8 +200,6 @@ class RefundServiceImpl(
         users: Map<Long, UserDto>? = null,
         items: Map<Long, ItemInfoDto>? = null
     ): RefundDto {
-        log.info("환불 엔티티를 DTO로 변환 시작. 환불 ID: {}", refund.id)
-
         val orderDetail = refund.orderDetail
         val order = orderDetail.order
 
