@@ -4,8 +4,8 @@
 erDiagram
     orders {
         bigint order_id PK "주문 번호"
-        bigint user_id FK "사용자 ID"
-        varchar(255) delivery_request "배송시 요청사항"
+        bigint user_id "사용자 ID"
+        varchar(255) delivery_request "배송 요청사항"
         int delivery_fee "배송비"
         int product_payment_amount "상품 결제 금액"
         datetime(6) order_date "주문 날짜"
