@@ -21,7 +21,7 @@ import java.time.LocalDate
 @RequestMapping("/api/cancels")
 class CancelControllerImpl(private val cancelService: CancelService) : CancelController {
 
-    @PostAuthorize("(#role = 'USER' and #returnObject.body.data.userId == #clientId) or #role = 'ADMIN' or #role = 'SUPER_ADMIN'")
+    @PostAuthorize("(#role=='USER' and #returnObject.body.data.userId==#clientId) or #role=='ADMIN' or #role=='SUPER_ADMIN'")
     @Operation(summary = "취소 정보 조회", description = "취소 정보를 조회합니다.")
     @GetMapping("/{cancelId}")
     override fun getCancel(
@@ -36,7 +36,7 @@ class CancelControllerImpl(private val cancelService: CancelService) : CancelCon
         return ResponseEntity.ok(SuccessResponse(HttpStatus.OK.value(), "조회가 완료되었습니다.", cancelInfo))
     }
 
-    @PreAuthorize("(#role=='USER' and #clientId == #userId) or #role='ADMIN' or #role='SUPER_ADMIN'")
+    @PreAuthorize("(#role=='USER' and #clientId==#userId) or #role=='ADMIN' or #role=='SUPER_ADMIN'")
     @Operation(summary = "취소 목록 조회", description = "조건에 맞는 취소 목록을 조회합니다.")
     @GetMapping
     override fun getCancelList(

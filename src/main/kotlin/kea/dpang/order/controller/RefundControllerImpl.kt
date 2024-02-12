@@ -25,7 +25,7 @@ import java.time.LocalDate
 @RequestMapping("/api/refunds")
 class RefundControllerImpl(private val refundService: RefundService) : RefundController {
 
-    @PostAuthorize("(#role = 'USER' and #returnObject.body.data.refundDto.userId == #clientId) or #role = 'ADMIN' or #role = 'SUPER_ADMIN'")
+    @PostAuthorize("(#role=='USER' and #returnObject.body.data.refundDto.userId==#clientId) or #role=='ADMIN' or #role=='SUPER_ADMIN'")
     @Operation(summary = "환불 정보 조회", description = "환불 정보를 조회합니다.")
     @GetMapping("/{refundId}")
     override fun getRefund(
@@ -40,7 +40,7 @@ class RefundControllerImpl(private val refundService: RefundService) : RefundCon
         return ResponseEntity.ok(SuccessResponse(HttpStatus.OK.value(), "조회가 완료되었습니다.", refundDetail))
     }
 
-    @PreAuthorize("(#role=='USER' and #clientId == #userId) or #role='ADMIN' or #role='SUPER_ADMIN'")
+    @PreAuthorize("(#role=='USER' and #clientId==#userId) or #role=='ADMIN' or #role=='SUPER_ADMIN'")
     @Operation(summary = "환불 목록 조회", description = "조건에 맞는 환불 목록을 조회합니다.")
     @GetMapping
     override fun getRefundList(
@@ -61,7 +61,7 @@ class RefundControllerImpl(private val refundService: RefundService) : RefundCon
         return ResponseEntity.ok(SuccessResponse(HttpStatus.OK.value(), "조회가 완료되었습니다.", refundList))
     }
 
-    @PreAuthorize("#role='ADMIN' or #role='SUPER_ADMIN'")
+    @PreAuthorize("#role=='ADMIN' or #role=='SUPER_ADMIN'")
     @Operation(summary = "환불 상태 업데이트", description = "환불 상태를 업데이트합니다.")
     @PutMapping("/{refundId}")
     override fun updateRefundStatus(
