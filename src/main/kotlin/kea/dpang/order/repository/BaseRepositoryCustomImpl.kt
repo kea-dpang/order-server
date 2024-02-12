@@ -53,22 +53,46 @@ abstract class BaseRepositoryCustomImpl<T>(
         userId?.let { builder.and(userPath.eq(it)) }
 
         // 쿼리를 실행하여 결과를 페이지네이션된 형태로 반환한다.
-        val entityList = jpaQueryFactory
+        val entityList = fetchEntities(pageable, builder)
+
+        // 전체 엔티티의 개수를 가져온다.
+        val totalEntitiesCount = fetchTotalEntitiesCount(builder)
+
+        return PageImpl(entityList, pageable, totalEntitiesCount)
+    }
+
+    /**
+     * 주어진 필터링 조건에 따라 쿼리를 실행하여 결과를 가져옵니다.
+     *
+     * @param pageable 페이지네이션 정보
+     * @param builder 필터링 조건을 담은 BooleanBuilder
+     * @return 쿼리 결과를 담은 List 객체
+     */
+    private fun fetchEntities(
+        pageable: Pageable,
+        builder: BooleanBuilder
+    ): List<T> {
+        return jpaQueryFactory
             .selectFrom(entityPath)
             .where(builder)
             .orderBy(datePath.desc())
             .offset(pageable.offset)
             .limit(pageable.pageSize.toLong())
             .fetch()
+    }
 
-        // 전체 충전 요청 수를 가져온다.
-        val totalChargeRequests = jpaQueryFactory
+    /**
+     * 주어진 필터링 조건에 따라 쿼리를 실행하여 전체 엔티티의 개수를 가져옵니다.
+     *
+     * @param builder 필터링 조건을 담은 BooleanBuilder
+     * @return 전체 엔티티의 개수
+     */
+    private fun fetchTotalEntitiesCount(builder: BooleanBuilder): Long {
+        return jpaQueryFactory
             .selectFrom(entityPath)
             .where(builder)
             .fetch()
             .size
             .toLong()
-
-        return PageImpl(entityList, pageable, totalChargeRequests)
     }
 }
