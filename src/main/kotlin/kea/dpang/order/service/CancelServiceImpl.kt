@@ -7,7 +7,6 @@ import kea.dpang.order.entity.OrderDetail
 import kea.dpang.order.entity.OrderStatus.CANCELLED
 import kea.dpang.order.entity.OrderStatus.PAYMENT_COMPLETED
 import kea.dpang.order.exception.CancelNotFoundException
-import kea.dpang.order.exception.OrderDetailNotFoundException
 import kea.dpang.order.exception.UnableToCancelException
 import kea.dpang.order.feign.dto.ItemInfoDto
 import kea.dpang.order.feign.dto.UpdateStockListRequestDto
@@ -29,25 +28,17 @@ class CancelServiceImpl(
     private val itemService: ItemService,
     private val mileageService: MileageService,
     private val userService: UserService,
-    private val orderRepository: OrderRepository,
+    orderRepository: OrderRepository,
     private val cancelRepository: CancelRepository
-) : CancelService, BaseService(itemService, userService) {
+) : CancelService, BaseService(itemService, userService, orderRepository) {
 
     private val log = LoggerFactory.getLogger(CancelServiceImpl::class.java)
 
     override fun cancelOrder(orderId: Long, orderDetailId: Long) {
         log.info("주문 취소 시작. 주문 ID: {}, 주문 상세 ID: {}", orderId, orderDetailId)
 
-        // 주어진 orderId를 사용하여 데이터베이스에서 주문 정보를 조회한다.
-        val order = orderRepository.findById(orderId)
-            .orElseThrow {
-                log.error("주문 정보를 찾을 수 없음. 주문 ID: {}", orderId)
-                throw OrderDetailNotFoundException(orderDetailId)
-            }
-
-        // 주어진 orderDetailId를 사용하여 주문 상세 정보를 조회한다.
-        val orderDetail = order.details.find { it.id == orderDetailId }
-            ?: throw OrderDetailNotFoundException(orderDetailId)
+        // 주문 상세 정보를 조회한다.
+        val orderDetail = fetchOrderDetail(orderId, orderDetailId)
 
         // 조회된 주문 상태를 확인하여, 주문이 취소가 가능한지 확인한다.
         checkCancelAvailable(orderDetail)

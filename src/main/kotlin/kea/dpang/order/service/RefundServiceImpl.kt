@@ -9,7 +9,10 @@ import kea.dpang.order.entity.OrderStatus.DELIVERY_COMPLETED
 import kea.dpang.order.entity.Recall
 import kea.dpang.order.entity.Refund
 import kea.dpang.order.entity.RefundStatus
-import kea.dpang.order.exception.*
+import kea.dpang.order.exception.InvalidRefundStatusChangeException
+import kea.dpang.order.exception.RefundAlreadyInRequestedStatusException
+import kea.dpang.order.exception.RefundNotFoundException
+import kea.dpang.order.exception.UnableToRefundException
 import kea.dpang.order.feign.dto.ItemInfoDto
 import kea.dpang.order.feign.dto.UpdateStockListRequestDto
 import kea.dpang.order.feign.dto.UpdateStockRequestDto
@@ -31,24 +34,16 @@ class RefundServiceImpl(
     private val mileageService: MileageService,
     private val userService: UserService,
     private val refundRepository: RefundRepository,
-    private val orderRepository: OrderRepository
-) : RefundService, BaseService(itemService, userService) {
+    orderRepository: OrderRepository
+) : RefundService, BaseService(itemService, userService, orderRepository) {
 
     private val log = LoggerFactory.getLogger(RefundServiceImpl::class.java)
 
     override fun refundOrder(orderId: Long, orderDetailId: Long, refundOrderRequest: RefundOrderRequestDto) {
         log.info("환불 요청 시작. 주문 상세 ID: {}", orderDetailId)
 
-        // 주어진 orderId를 사용하여 데이터베이스에서 주문 정보를 조회한다.
-        val order = orderRepository.findById(orderId)
-            .orElseThrow {
-                log.error("주문 정보를 찾을 수 없음. 주문 ID: {}", orderId)
-                throw OrderDetailNotFoundException(orderDetailId)
-            }
-
-        // 주어진 orderDetailId를 사용하여 주문 상세 정보를 조회한다.
-        val orderDetail = order.details.find { it.id == orderDetailId }
-            ?: throw OrderDetailNotFoundException(orderDetailId)
+        // 주문 상세 정보를 조회한다.
+        val orderDetail = fetchOrderDetail(orderId, orderDetailId)
 
         // 조회된 주문 상태를 확인하여, 환불이 가능한 상태인지 확인한다.
         checkRefundAvailable(orderDetail)

@@ -30,7 +30,7 @@ class OrderServiceImpl(
     private val mileageService: MileageService,
     private val userService: UserService,
     private val orderRepository: OrderRepository
-) : OrderService, BaseService(itemService, userService) {
+) : OrderService, BaseService(itemService, userService, orderRepository) {
 
     private val log = LoggerFactory.getLogger(OrderServiceImpl::class.java)
 
@@ -191,11 +191,7 @@ class OrderServiceImpl(
         log.info("주문 상태 변경 시작. 주문 ID: {}, 변경 요청 정보: {}", orderId, updateOrderStatusRequest)
 
         // 데이터베이스에서 주문 정보를 조회한다.
-        val order = orderRepository.findById(orderId)
-            .orElseThrow {
-                log.error("주문 상태 변경 실패. 찾을 수 없는 주문 상세 ID: {}", orderId)
-                OrderNotFoundException(orderId)
-            }
+        val order = fetchOrder(orderId)
 
         // 주문 상태 변경을 처리한다.
         order.details.forEach { orderDetail ->
@@ -208,16 +204,8 @@ class OrderServiceImpl(
     override fun updateOrderDetailStatus(orderId: Long, orderDetailId: Long, updateOrderStatusRequest: UpdateOrderStatusRequestDto) {
         log.info("주문 상태 변경 시작. 주문 ID: {}, 주문 상세 ID: {}, 변경 요청 정보: {}", orderId, orderDetailId, updateOrderStatusRequest)
 
-        // 데이터베이스에서 주문 정보를 조회한다.
-        val order = orderRepository.findById(orderId)
-            .orElseThrow {
-                log.error("주문 상태 변경 실패. 찾을 수 없는 주문 ID: {}", orderId)
-                OrderNotFoundException(orderId)
-            }
-
         // 주문 상세 정보를 조회한다.
-        val orderDetail = order.details.find { it.id == orderDetailId }
-            ?: throw OrderDetailNotFoundException(orderDetailId)
+        val orderDetail = fetchOrderDetail(orderId, orderDetailId)
 
         // 주문 상태 변경을 처리한다.
         log.info("주문 상태 변경 처리 시작. 주문 상세 ID: {}, 변경 요청 정보: {}", orderDetailId, updateOrderStatusRequest)
@@ -348,11 +336,7 @@ class OrderServiceImpl(
         log.info("주문 상세 정보 조회 시작. 주문 ID: {}", orderId)
 
         // 데이터베이스에서 주문 정보를 조회
-        val order = orderRepository.findById(orderId)
-            .orElseThrow {
-                log.error("주문 상세 정보 조회 실패. 찾을 수 없는 주문 ID: {}", orderId)
-                OrderNotFoundException(orderId)
-            }
+        val order = fetchOrder(orderId)
 
         // OrderDetailDto 반환
         val orderDetailDto = OrderDetailDto(
@@ -371,16 +355,8 @@ class OrderServiceImpl(
     override fun getOrderDetailInfo(orderId: Long, orderDetailId: Long): OrderedProductInfo {
         log.info("주문 상세 정보 조회 시작. 주문 ID: {}, 주문 상세 ID: {}", orderId, orderDetailId)
 
-        // 데이터베이스에서 주문 정보를 조회
-        val order = orderRepository.findById(orderId)
-            .orElseThrow {
-                log.error("주문 상세 정보 조회 실패. 찾을 수 없는 주문 ID: {}", orderId)
-                OrderNotFoundException(orderId)
-            }
-
         // 주문 상세 정보를 조회
-        val orderDetail = order.details.find { it.id == orderDetailId }
-            ?: throw OrderDetailNotFoundException(orderDetailId)
+        val orderDetail = fetchOrderDetail(orderId, orderDetailId)
 
         // 상품 정보 조회
         val productInfo = itemService.getItemInfo(orderDetail.itemId)
