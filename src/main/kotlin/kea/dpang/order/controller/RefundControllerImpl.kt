@@ -7,7 +7,7 @@ import kea.dpang.order.base.BaseResponse
 import kea.dpang.order.base.SuccessResponse
 import kea.dpang.order.dto.refund.RefundDetailDto
 import kea.dpang.order.dto.refund.RefundDto
-import kea.dpang.order.dto.refund.RefundStatusDto
+import kea.dpang.order.dto.refund.UpdateRefundStatusRequestDto
 import kea.dpang.order.entity.RefundStatus
 import kea.dpang.order.service.RefundService
 import org.springframework.data.domain.Page
@@ -68,7 +68,7 @@ class RefundControllerImpl(private val refundService: RefundService) : RefundCon
         @Parameter(hidden = true)
         @RequestHeader("X-DPANG-CLIENT-ROLE") role: String,
         @Parameter(description = "환불 ID") @PathVariable refundId: Long,
-        @Parameter(description = "환불 상태 정보") @RequestBody refundStatusDto: RefundStatusDto
+        @Parameter(description = "환불 상태 정보") @RequestBody refundStatusDto: UpdateRefundStatusRequestDto
     ): ResponseEntity<BaseResponse> {
 
         refundService.updateRefundStatus(refundId, refundStatusDto)

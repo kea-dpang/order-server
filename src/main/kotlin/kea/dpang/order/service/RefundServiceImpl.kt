@@ -216,7 +216,7 @@ class RefundServiceImpl(
         return createRefundDto(refund, user, productInfoDto)
     }
 
-    override fun updateRefundStatus(refundId: Long, refundStatusDto: RefundStatusDto) {
+    override fun updateRefundStatus(refundId: Long, refundStatusDto: UpdateRefundStatusRequestDto) {
         log.info("환불 상태 업데이트 시작. 환불 ID: {}, 새로운 환불 상태: {}", refundId, refundStatusDto.status)
 
         val refund = refundRepository.findById(refundId)

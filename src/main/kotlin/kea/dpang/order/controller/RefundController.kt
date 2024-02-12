@@ -4,7 +4,7 @@ import kea.dpang.order.base.BaseResponse
 import kea.dpang.order.base.SuccessResponse
 import kea.dpang.order.dto.refund.RefundDetailDto
 import kea.dpang.order.dto.refund.RefundDto
-import kea.dpang.order.dto.refund.RefundStatusDto
+import kea.dpang.order.dto.refund.UpdateRefundStatusRequestDto
 import kea.dpang.order.entity.RefundStatus
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -60,6 +60,6 @@ interface RefundController {
     fun updateRefundStatus(
         role: String,
         refundId: Long,
-        refundStatusDto: RefundStatusDto
+        refundStatusDto: UpdateRefundStatusRequestDto
     ): ResponseEntity<BaseResponse>
 }
