@@ -15,6 +15,8 @@ import kea.dpang.order.feign.dto.UpdateStockRequestDto
 import kea.dpang.order.feign.dto.UserDto
 import kea.dpang.order.repository.CancelRepository
 import kea.dpang.order.repository.OrderRepository
+import kotlinx.coroutines.async
+import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -134,19 +136,25 @@ class CancelServiceImpl(
             return Page.empty()
         }
 
-        // 취소 목록에 포함된 사용자 ID를 추출한다.
-        val userIds = cancels.map { it.orderDetail.order.userId }.distinct()
-        log.info("취소 목록에 포함된 사용자 ID 목록: {}", userIds)
-
-        // 취소 목록에 포함된 사용자 정보를 조회한다.
-        val users = userService.getUserInfos(userIds).associateBy { it.userId }
-
-        // 취소 목록에 포함된 상품 ID를 추출한다.
+        // 취소 목록에 포함된 상품 ID와 사용자 ID를 추출한다.
         val itemIds = cancels.map { it.orderDetail.itemId }.distinct()
-        log.info("취소 목록에 포함된 상품 ID 목록: {}", itemIds)
+        val userIds = cancels.map { it.orderDetail.order.userId }.distinct()
 
-        // 취소 목록에 포함된 상품 정보를 조회한다.
-        val items = itemService.getItemInfos(itemIds).associateBy { it.id }
+        log.info("취소 목록에 포함된 상품 ID 목록: {}, 사용자 ID 목록: {}", itemIds, userIds)
+
+        // runBlocking 블록 내에서 비동기로 상품 정보 조회와 사용자 정보 조회한다.
+        val (items, users) = runBlocking {
+            val itemsDeferred = async {
+                itemService.getItemInfos(itemIds).associateBy { it.id }
+            }
+
+            val usersDeferred = async {
+                userService.getUserInfos(userIds).associateBy { it.userId }
+            }
+
+            // itemsDeferred와 usersDeferred가 모두 완료될 때까지 기다린 후, 그 결과를 Pair로 묶어서 반환한다.
+            Pair(itemsDeferred.await(), usersDeferred.await())
+        }
 
         // RefundDto 목록으로 변환하여 반환한다.
         return cancels.map { convertCancelEntityToDto(it, users, items) }

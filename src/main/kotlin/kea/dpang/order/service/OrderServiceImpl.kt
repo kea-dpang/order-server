@@ -15,6 +15,8 @@ import kea.dpang.order.feign.dto.UpdateStockListRequestDto
 import kea.dpang.order.feign.dto.UpdateStockRequestDto
 import kea.dpang.order.feign.dto.UserDto
 import kea.dpang.order.repository.OrderRepository
+import kotlinx.coroutines.async
+import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
@@ -292,11 +294,19 @@ class OrderServiceImpl(
 
         log.info("주문 목록에 포함된 상품 ID: {}, 사용자 ID: {}", itemIds, userIds)
 
-        // 주문 목록에 포함된 상품 정보를 조회한다.
-        val items = itemService.getItemInfos(itemIds).associateBy { it.id }
+        // runBlocking 블록 내에서 비동기로 상품 정보 조회와 사용자 정보 조회한다.
+        val (items, users) = runBlocking {
+            val itemsDeferred = async {
+                itemService.getItemInfos(itemIds).associateBy { it.id }
+            }
 
-        // 주문 목록에 포함된 사용자 정보를 조회한다.
-        val users = userService.getUserInfos(userIds).associateBy { it.userId }
+            val usersDeferred = async {
+                userService.getUserInfos(userIds).associateBy { it.userId }
+            }
+
+            // itemsDeferred와 usersDeferred가 모두 완료될 때까지 기다린 후, 그 결과를 Pair로 묶어서 반환한다.
+            Pair(itemsDeferred.await(), usersDeferred.await())
+        }
 
         return orders.map { convertOrderEntityToDto(it, users, items) }
     }
