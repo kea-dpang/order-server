@@ -3,7 +3,7 @@ package kea.dpang.order.service
 import kea.dpang.order.dto.OrderedProductInfo
 import kea.dpang.order.dto.ProductInfoDto
 import kea.dpang.order.dto.refund.*
-import kea.dpang.order.dto.refund.RefundDetailDto.*
+import kea.dpang.order.entity.OrderDetail
 import kea.dpang.order.entity.OrderStatus.CANCELLED
 import kea.dpang.order.entity.OrderStatus.DELIVERY_COMPLETED
 import kea.dpang.order.entity.Recall
@@ -50,10 +50,7 @@ class RefundServiceImpl(
             ?: throw OrderDetailNotFoundException(orderDetailId)
 
         // 조회된 주문 상태를 확인하여, 환불이 가능한 상태인지 확인한다.
-        if (orderDetail.status != DELIVERY_COMPLETED) {
-            log.error("환불 불가능 상태. 주문 상세 ID: {}", orderDetailId)
-            throw UnableToRefundException()
-        }
+        checkRefundAvailable(orderDetail)
 
         // 주문 상태를 '취소'로 변경한다.
         orderDetail.status = CANCELLED
@@ -88,6 +85,18 @@ class RefundServiceImpl(
         orderDetail.assignRefund(refund)
 
         log.info("환불 요청 완료. 주문 상세 ID: {}", orderDetailId)
+    }
+
+    /**
+     * 주문 상세 정보의 상태를 확인하여 환불이 가능한지 확인하는 메서드
+     *
+     * @param orderDetail 환불 가능 여부를 확인할 주문 상세 정보
+     */
+    private fun checkRefundAvailable(orderDetail: OrderDetail) {
+        if (orderDetail.status != DELIVERY_COMPLETED) {
+            log.error("환불 불가능 상태. 주문 상세 ID: {}", orderDetail.id)
+            throw UnableToRefundException()
+        }
     }
 
     @Transactional(readOnly = true)
