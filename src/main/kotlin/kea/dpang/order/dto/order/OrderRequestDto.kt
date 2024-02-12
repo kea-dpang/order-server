@@ -5,12 +5,12 @@ package kea.dpang.order.dto.order
  *
  * @property deliveryInfo 배송지 정보
  * @property deliveryRequest 배송 요청사항
- * @property orderIteminfo 상품 정보
+ * @property orderItemInfo 상품 정보
  */
 data class OrderRequestDto(
     val deliveryInfo: DeliveryInfo,
     var deliveryRequest: String,
-    val orderIteminfo: List<ItemInfo>
+    val orderItemInfo: List<ItemInfo>
 ) {
 
     /**
