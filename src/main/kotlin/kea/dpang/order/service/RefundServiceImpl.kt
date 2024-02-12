@@ -230,12 +230,6 @@ class RefundServiceImpl(
         // RefundStatusDto에서 변경할 환불 상태를 추출한다.
         val newStatus = refundStatusDto.status
 
-        // 변경할 환불 상태가 현재 환불 상태와 동일한지 확인한다.
-        if (refund.refundStatus == newStatus) {
-            log.error("이미 요청된 환불 상태. 환불 ID: {}, 현재 상태: {}, 변경할 상태: {}", refundId, refund.refundStatus, newStatus)
-            throw RefundAlreadyInRequestedStatusException()
-        }
-
         // 환불 상태 변경이 유효한지 검증한다.
         validateStatusChange(refund.refundStatus, newStatus)
 
@@ -278,6 +272,13 @@ class RefundServiceImpl(
      * @throws InvalidRefundStatusChangeException 환불 상태 변경이 유효하지 않은 경우
      */
     private fun validateStatusChange(currentStatus: RefundStatus, targetStatus: RefundStatus) {
+        // 변경할 환불 상태가 현재 환불 상태와 동일한지 확인한다.
+        if (currentStatus == targetStatus) {
+            log.error("이미 요청된 환불 상태. 환불 ID: {}, 현재 상태: {}, 변경할 상태: {}", currentStatus, targetStatus)
+            throw RefundAlreadyInRequestedStatusException()
+        }
+
+        // 변경할 환불 상태가 현재 환불 상태보다 순차적인지 확인한다.
         if (currentStatus.ordinal + 1 != targetStatus.ordinal) {
             log.error("잘못된 환불 상태 변경 시도. 현재 상태: {}, 목표 상태: {}", currentStatus, targetStatus)
             throw InvalidRefundStatusChangeException(currentStatus.name, targetStatus.name)
