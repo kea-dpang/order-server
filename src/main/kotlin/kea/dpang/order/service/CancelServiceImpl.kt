@@ -49,7 +49,7 @@ class CancelServiceImpl(
         // 주문 취소 정보
         val cancel = Cancel(
             orderDetail = orderDetail,
-            refundAmount = orderDetail.order.productPaymentAmount + orderDetail.order.deliveryFee
+            refundAmount = orderDetail.purchasePrice
         )
 
         // 취소 정보를 데이터베이스에 저장한다.
