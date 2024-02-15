@@ -17,7 +17,9 @@ sequenceDiagram
     participant OtherService as Other Service
     
     Client ->> Gateway: 요청 전송
-    Gateway ->> OrderService: 요청 전달 <br> (X-DPANG-CLIENT-ID, X-DPANG-CLIENT-ROLE 헤더 추가)
+    Gateway ->> Gateway: 토큰 검증 및 <br> X-DPANG-CLIENT-ID, X-DPANG-CLIENT-ROLE 헤더 추가
+
+    Gateway ->> OrderService: 요청 전달
     OrderService ->> OrderService: 해당 요청 권한 식별
 
     opt 요청에 대한 권한이 있는 경우
